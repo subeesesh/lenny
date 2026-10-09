@@ -231,6 +231,8 @@ Generated HTML is untrusted. Two layers:
 | Server, on save | `nh3` allowlist sanitizer: keeps text, headings, lists, tables, `div/span/section`, `style` attributes, `img` with `data:` src only, `a` with `http(s)` href only. Removes `script`, `iframe`, `object`, `embed`, `form`, `link`, `meta`, event handlers, `javascript:` URLs, and `style` attributes containing `url(`, `expression(` or `@import`. Max 200 KB (Markdown too). Markdown is not run through `nh3` (it would escape `>` and break blockquotes); any raw HTML in it is contained by the browser layer. |
 | Browser, on render | Both Markdown (rendered with `marked`) and HTML go into `<iframe sandbox="" srcdoc=...>` with `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">`. No scripts, no same-origin access, no forms, no popups, no network requests. |
 
+Chat answers are also model output but render in the main page (not the iframe), so the chat Markdown renderer escapes all raw HTML, keeps only `http(s)` links and drops images; `[n]` markers become links to the matching citation.
+
 Consequence (documented in the viewer note): links inside artifacts are shown but do not navigate; the user can copy them. Citation chips in the chat (outside the iframe) are normal links.
 
 Other: secrets only from env; logs redact keys and truncate message text; DB port bound to 127.0.0.1.
@@ -259,6 +261,8 @@ Docker Compose:
   db   pgvector/pgvector:pg16   127.0.0.1:${DB_HOST_PORT:-5432}, volume pgdata, healthcheck
   api  FastAPI + built UI        :8000  (extra_hosts: host.docker.internal:host-gateway)
 ```
+The API image is built from the repo root (`backend/Dockerfile`, multi-stage): a Node stage runs `npm ci && npm run build` in `web/`, and the Python stage copies `web/dist` to `static/`, which FastAPI serves at `/` after the `/api/v1` routes.
+
 Commands: `make up` (build + start), `make ingest`, `make test`, `make eval`. Open http://localhost:8000.
 
 ## 11. Tests (pytest, LLM mocked)

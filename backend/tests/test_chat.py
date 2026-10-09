@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 import pytest
+import structlog.testing
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
@@ -143,3 +144,14 @@ def test_config_get_and_put(client: TestClient, monkeypatch: pytest.MonkeyPatch)
     res = client.put("/api/v1/config", json={"provider": "ollama", "model": "qwen3:1.7b"})
     assert res.json()["active"] == {"provider": "ollama", "model": "qwen3:1.7b"}
     assert client.put("/api/v1/config", json={"provider": "gpt"}).status_code == 422
+
+
+def test_turn_log_has_ttft_and_retrieval_score(client: TestClient) -> None:
+    use(client)
+    sid = new_session(client)
+    with structlog.testing.capture_logs() as logs:
+        ask(client, sid, "Why does retention compound?")
+    done = next(entry for entry in logs if entry["event"] == "turn_done")
+    assert done["retrieval_top_score"] == 0.81
+    assert isinstance(done["ttft_ms"], int) and done["ttft_ms"] <= done["latency_ms"]
+    assert "Why does retention compound?" not in str(logs)

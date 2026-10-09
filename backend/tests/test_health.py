@@ -29,3 +29,9 @@ def test_ready_with_db_down_returns_503(client: TestClient) -> None:
     assert res.status_code == 503
     assert res.json()["db"] is False
     assert res.json()["chunks"] is None
+
+
+def test_ui_is_served_and_api_404_keeps_error_shape(client: TestClient) -> None:
+    res = client.get("/")
+    assert res.status_code == 200 and '<div id="root">' in res.text
+    assert client.get("/api/v1/nope").json()["error"]["code"] == "not_found"

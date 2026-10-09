@@ -17,7 +17,7 @@ from app.agent.context import (
 from app.agent.essay import run_essay
 from app.agent.router import route
 from app.llm.base import Message, stream_with_retry
-from app.retrieval.search import Hit
+from app.retrieval.search import Hit, Retrieval
 
 SKILLS_DIR = Path(__file__).resolve().parents[2] / "skills"
 HISTORY_CHARS = 1000
@@ -79,10 +79,16 @@ async def run_turn(
 ) -> AsyncIterator[Event]:
     result.route = route(content, hint)
     log.info("routed", route=result.route)
+
+    async def recording_retriever(question: str, previous: str | None) -> Retrieval:
+        retrieval = await retriever(question, previous)
+        result.top_score = retrieval.top_score
+        return retrieval
+
     if result.route == "chat":
         turn = run_chat(result)
     else:
         skill = {"essay": run_essay, "artifact": run_artifact}.get(result.route, run_qa)
-        turn = skill(content, history, retriever, provider_factory, skills, result)
+        turn = skill(content, history, recording_retriever, provider_factory, skills, result)
     async for event in turn:
         yield event

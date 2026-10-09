@@ -28,6 +28,7 @@ class TurnResult:
     provider: str | None = None
     model: str | None = None
     artifact: Draft | None = None
+    top_score: float | None = None
 
 
 def timestamp_url(url: str | None, ts: str | None) -> str | None:

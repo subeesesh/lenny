@@ -1,8 +1,10 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import structlog
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.agent.skills import load_skills
 from app.api import config, health, sessions
@@ -13,6 +15,8 @@ from app.db.pool import apply_schema, create_pool
 from app.llm.providers import Active, default_model, make_provider
 from app.logging import configure_logging
 from app.retrieval.search import Retrieval, ollama_query_embedder, retrieve
+
+STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
 
 log = structlog.get_logger()
 
@@ -48,6 +52,8 @@ def create_app(database_url: str | None = None) -> FastAPI:
     register_error_handlers(app)
     for module in (health, config, sessions):
         app.include_router(module.router, prefix="/api/v1")
+    if STATIC_DIR.is_dir():
+        app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="web")
     return app
 
 

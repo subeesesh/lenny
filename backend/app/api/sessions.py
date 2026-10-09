@@ -76,11 +76,14 @@ async def post_message(session_id: UUID, body: MessageCreate, request: Request) 
 
     async def events() -> AsyncIterator[str]:
         start = time.perf_counter()
+        ttft_ms: int | None = None
         result = TurnResult()
         error: AppError | None = None
         try:
             turn = run_turn(body.content, body.route_hint, history, state.retriever, state.provider_factory, state.skills, result)
             async for event, data in turn:
+                if event == "token" and ttft_ms is None:
+                    ttft_ms = int((time.perf_counter() - start) * 1000)
                 yield sse(event, data)
         except AppError as exc:
             error = exc
@@ -94,7 +97,8 @@ async def post_message(session_id: UUID, body: MessageCreate, request: Request) 
         )
         log.info(
             "turn_done", route=result.route, provider=result.provider, model=result.model,
-            latency_ms=latency_ms, error_code=error.code if error else None,
+            retrieval_top_score=result.top_score, ttft_ms=ttft_ms, latency_ms=latency_ms,
+            error_code=error.code if error else None,
         )
         if error:
             yield sse("error", error.to_dict(request_id))
