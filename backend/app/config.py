@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 3000
     llm_timeout_s: int = 120
     retrieval_top_k: int = 5
-    retrieval_min_score: float = 0.5
+    retrieval_min_score: float = 0.69
     database_url: str = "postgresql://lenny:lenny@db:5432/lenny"
     log_level: str = "INFO"
 

@@ -159,10 +159,11 @@ Why not turn-aware chunking: it is more code and a second experiment; the recurs
 1. **Query text:** first message → the message itself. Follow-up → previous user message + current message (no extra LLM call).
 2. Embed with `search_query: ` prefix.
 3. `ORDER BY embedding <=> $q LIMIT 15`, then keep at most 2 chunks per episode, top 5.
-4. If the best cosine similarity < `RETRIEVAL_MIN_SCORE` → `retrieval_empty`: the assistant says the transcripts don't cover it, no citations.
+4. If the best cosine similarity < `RETRIEVAL_MIN_SCORE` → `retrieval_empty`: the assistant says the transcripts don't cover it, no citations. Threshold 0.69, set from the eval set with real embeddings: grounded top scores 0.704–0.887, off-topic 0.567–0.672. Near-domain traps (0.725–0.742) are not separable by score and rely on the answer prompt.
 5. **Guards (cheap, rule-based):**
    - Personal-data requests (address, phone, email of a person) → refuse before retrieval.
    - If the question names a person who is neither a guest nor the host (checked against `episodes.guest`), and asks what they said *on the podcast*, refuse ("X was not a guest").
+   - Matching details: the personal-data rule needs a person (`Name's phone`, `email of Name`, `home address`, `where does Name live`) so "write a cold email" passes. The non-guest rule fires only on "did/does Name say/talk/… on the podcast/show"; Name is known if all its words appear in one `episodes.guest` value or chunk `speaker` (guest values are messy, e.g. `Hamel+Shreya`, `Failure`), or it is Lenny. Guards look at the current message only.
 
 ## 6. Agent and LLM
 
@@ -210,7 +211,7 @@ LLM_MAX_TOKENS=3000
 LLM_TIMEOUT_S=120
 RETRIEVAL_TOP_K=5
 # tuned on eval set
-RETRIEVAL_MIN_SCORE=0.5
+RETRIEVAL_MIN_SCORE=0.69
 DATABASE_URL=postgresql://lenny:lenny@db:5432/lenny
 LOG_LEVEL=INFO
 # host port for the db container; change if 5432 is taken
