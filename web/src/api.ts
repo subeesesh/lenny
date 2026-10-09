@@ -2,6 +2,7 @@ const BASE = "/api/v1";
 
 export type Citation = {
   chunk_id: number;
+  slug: string;
   title: string;
   guest: string | null;
   url: string | null;
@@ -81,7 +82,10 @@ export type StreamEvent =
   | { event: "citations"; data: Citation[] }
   | { event: "token"; data: { text: string } }
   | { event: "artifact"; data: ArtifactRef }
-  | { event: "done"; data: { message_id: number; provider: string | null; model: string | null; latency_ms: number } }
+  | {
+      event: "done";
+      data: { message_id: number; provider: string | null; model: string | null; latency_ms: number; retrieval_top_score: number | null };
+    }
   | { event: "error"; data: ErrorBody };
 
 function parseBlock(block: string): StreamEvent | null {

@@ -1,6 +1,6 @@
 # Design: The Lenny Growth Assistant
 
-Status: v3 (minimal) · 2026-10-09
+Status: v3 (minimal) · 2026-10-09 · updated after build step 7
 
 ## 1. Principles
 1. **Trust first.** Every answer shows its sources; unsupported questions get a plain "not covered."
@@ -16,7 +16,7 @@ Status: v3 (minimal) · 2026-10-09
 App
 ├── Sidebar: New chat · session list (title, relative time)
 ├── Chat
-│   ├── Header: session title · provider badge ("Local · qwen3:4b-instruct" / "Cloud · Claude")
+│   ├── Header: session title · provider badge ("Local · qwen3:4b-instruct" / "Cloud · claude-sonnet-4-6")
 │   ├── Messages: user / assistant · citation chips · artifact cards · status line
 │   └── Composer: textarea · Send · quick actions (Write Ship 30 essay · Make one-pager)
 └── Artifact pane (opens when an artifact exists)
@@ -24,7 +24,7 @@ App
     └── Sandboxed preview + note "Sandboxed: scripts, forms, links and external content are blocked"
 ```
 
-On first visit a small dialog asks for a display name (saved in the browser and sent with each new session).
+On first visit a small dialog asks for a display name (saved in the browser and sent with each new session). "New chat" only clears the view; the session is created when the first message is sent, so empty chats never appear in the list.
 
 ## 3. Responsive
 
@@ -39,12 +39,13 @@ Chat text max width ~72 characters; composer stays at the bottom.
 
 | Component | Behavior |
 |---|---|
-| Provider badge | Pill with icon + text; click opens a menu listing Ollama and Anthropic with "available" or the reason it isn't |
+| Provider badge | Pill with icon + text (`Local`/`Cloud` · model, with the quantization suffix trimmed); click opens a menu listing Ollama and Anthropic with "available" or the reason it isn't (from `/config`); disabled while an answer is streaming |
 | Citation chip | `[1] Guest — Episode` link to YouTube at the timestamp (plain text if no URL); inline `[n]` in the answer match chip numbers |
 | Artifact card | In-chat card with title, type and Open button |
 | Status line | "Searching transcripts…" → "Writing…" |
 | Empty state | One line on what the assistant does + 3 example questions |
-| Not-covered answer | Neutral callout: "The transcripts don't cover this." |
+| Not-covered answer | Neutral callout: "The transcripts don't cover this." Guard refusals (personal data, "X was not a guest") use the same callout |
+| Quick actions | "Write a Ship 30 essay" / "Make a one-pager" use the text in the composer as the topic (sent as "Write a Ship 30 essay on <topic>" with the matching `route_hint`); disabled until a topic is typed |
 
 ## 5. States
 
@@ -53,9 +54,10 @@ Chat text max width ~72 characters; composer stays at the bottom.
 | Sending | User message appears immediately; composer disabled until done |
 | Streaming | Tokens append; status line; screen reader announces only "Answer complete" |
 | Not covered | Callout, no chips |
-| Ollama down | Error card: "Can't reach Ollama. Run `ollama serve`." + Retry (+ Switch to Cloud if configured) |
+| Ollama down / model missing | Error card with the server's message, which names the fix as a copyable command (`ollama serve`, `ollama pull <model>`) + Retry (+ Switch to Cloud if configured and not already on Cloud). Retry sends the same request again, so the question appears twice in the chat history |
 | No API key | Cloud option disabled: "Add ANTHROPIC_API_KEY to .env" |
 | Timeout | "The model took too long." + Retry |
+| Failed answer reloaded from history | Error card "This answer didn't complete." (no Retry; the error details are not stored) |
 | Essay / artifact generating | Status line; pane opens when ready |
 | Artifact rejected | Notice with reason; chat continues |
 | Sessions loading / empty / error | Skeleton / "No chats yet" / message with Retry |

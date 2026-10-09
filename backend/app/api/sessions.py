@@ -108,7 +108,10 @@ async def post_message(session_id: UUID, body: MessageCreate, request: Request) 
             artifact = await repo.add_artifact(state.pool, session_id, message_id, a.type, a.title, a.content)
             log.info("artifact_saved", artifact_type=a.type, size=len(a.content.encode()))
             yield sse("artifact", artifact)
-        yield sse("done", {"message_id": message_id, "provider": result.provider, "model": result.model, "latency_ms": latency_ms})
+        yield sse("done", {
+            "message_id": message_id, "provider": result.provider, "model": result.model,
+            "latency_ms": latency_ms, "retrieval_top_score": result.top_score,
+        })
 
     return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 

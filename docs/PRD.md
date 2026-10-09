@@ -57,7 +57,7 @@
 | Excluded | Why |
 |---|---|
 | Auth, roles, sharing | Not needed for an internal evaluation |
-| Comparing chunking strategies, HNSW index | ~13k vectors: exact search takes milliseconds; one sensible chunker is enough |
+| Comparing chunking strategies, HNSW index | ~16.5k vectors: exact search takes milliseconds; one sensible chunker is enough |
 | Hybrid search, reranker, LLM query rewriting, LLM router | Extra calls and latency; simple rules suffice |
 | Artifact editing/versions, download, session rename/delete | Not required |
 | OpenAI provider | One cloud provider is required; one is enough |

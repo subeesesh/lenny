@@ -1,6 +1,6 @@
 # Architecture: The Lenny Growth Assistant
 
-Status: v3 (minimal) · 2026-10-09
+Status: v3 (minimal) · 2026-10-09 · updated after build steps 1–7
 
 ## 1. Overview
 
@@ -20,7 +20,7 @@ Browser (React UI, served by the API) ──HTTP/SSE──▶ FastAPI
 | `app/retrieval/` | Embed query, vector search, threshold |
 | `app/ingest/` | Load, clean, chunk, embed transcripts (CLI only) |
 | `app/db/` | Schema, repositories |
-| `app/security/` | HTML sanitizer, log redaction |
+| `app/security/` | HTML sanitizer and 200 KB cap |
 
 Repo layout:
 
@@ -33,7 +33,8 @@ Repo layout:
 │   ├── skills/{qa,ship30,artifact}/SKILL.md
 │   ├── schema.sql
 │   └── tests/
-├── web/
+├── web/                (Vite + React + TypeScript; built into the API image)
+├── spike/              (Day-1 Agent SDK spike, §6.3)
 └── eval/ (eval_set.json, run_eval.py)
 ```
 
@@ -116,15 +117,15 @@ Codes: `validation_error` 422, `not_found` 404, `provider_not_configured` 400, `
 |---|---|---|
 | GET | `/health` | Liveness `{"status":"ok"}` |
 | GET | `/ready` | `{db, ollama, anthropic_key, chunks}`; 503 if DB down |
-| GET | `/config` | Providers, models, availability, active one |
-| PUT | `/config` | Set active provider/model (global, in memory; default from `.env`) |
-| POST | `/sessions` | `{"user_meta":{"display_name":"..."}}` → `{id, title, created_at}` |
-| GET | `/sessions` | List, newest first |
-| GET | `/sessions/{id}` | Session + messages + artifacts |
+| GET | `/config` | `{active: {provider, model}, providers: [{name, label, model, available, reason}]}`; `reason` says how to fix an unavailable provider (`ollama serve`, `ollama pull <model>`, add `ANTHROPIC_API_KEY`) |
+| PUT | `/config` | `{provider, model?}` sets the active provider/model (global, in memory; default from `.env`); 400 `provider_not_configured` for Anthropic without a key |
+| POST | `/sessions` | `{"user_meta":{"display_name":"..."}}` → 201 `{id, title, created_at}` |
+| GET | `/sessions` | List by `updated_at`, newest first |
+| GET | `/sessions/{id}` | Session + messages + artifacts (artifacts without `content`); 404 unknown id, 422 malformed id |
 | POST | `/sessions/{id}/messages` | `{"content": "1–4000 chars", "route_hint": null\|"essay"\|"artifact"}` → SSE |
 | GET | `/artifacts/{id}?session_id=` | Artifact; `session_id` is required so the query is scoped to the session like every other message/artifact query (404 if it belongs to another session) |
 
-SSE events, in order: `status` `{"stage":"retrieving"|"generating"}` (one or both) → `citations` `[...]` → `token` `{"text"}` (many) → `artifact` `{"id","type","title"}` (essay/artifact only) → `done` `{"message_id","provider","model","latency_ms"}`. On failure: `error` with the error object.
+SSE events, in order: `status` `{"stage":"retrieving"|"generating"}` (one or both) → `citations` `[...]` → `token` `{"text"}` (many) → `artifact` `{"id","type","title"}` (essay/artifact only) → `done` `{"message_id","provider","model","latency_ms"}`. On failure: `error` with the error object (after any events already sent), instead of `done`. Refusals (guards, weak retrieval) and the `chat` route send `citations` `[]` and the reply as a single `token`. For essays and artifacts the single `token` is a one-line summary; the document itself comes via `artifact` and `GET /artifacts/{id}`. Validation (422) and unknown session (404) fail before the stream starts, as normal JSON errors.
 
 ## 4. Ingestion
 
@@ -137,7 +138,7 @@ SSE events, in order: `status` `{"stage":"retrieving"|"generating"}` (one or bot
 3. Clean (4.3).
 4. Chunk (4.4).
 5. Embed with `nomic-embed-text` via Ollama, prefixing each chunk with `search_document: `. Batch insert.
-6. Print a summary: episodes kept/skipped, duplicates dropped, sponsor paragraphs removed, chunk count, failures. A failed episode is logged and skipped.
+6. Print a summary: `files, non_episodes, duplicates, ingested, skipped_unchanged, sponsor_paragraphs, chunks, failures, chunks_in_db`. A failed episode is logged (`ingest_failed`) and skipped. The hash check only sees the source file: after changing the cleaning rules, delete the affected episodes so they are re-ingested.
 7. `make ingest ARGS="--limit 5"` processes only the first N kept episodes (for a quick check).
 
 ### 4.3 Cleaning (deliberately small)
@@ -169,7 +170,7 @@ Why not turn-aware chunking: it is more code and a second experiment; the recurs
 
 ### 6.1 Router
 1. `route_hint` from UI buttons.
-2. Keyword rules: `essay`, `ship 30` → `essay`; `html`, `markdown`, `one-pager`, `document`, `doc` → `artifact`; greetings / "what can you do" → `chat`.
+2. Keyword rules: `essay`, `ship 30` → `essay`; `html`, `markdown`, `one-pager`, `document`, `doc` → `artifact`; a message that is only a greeting (`hi`, `hello`, `hey`, `thanks`, …) or asks "what can you do" / "who are you" / "how can you help" → `chat`. Keywords match whole words (`doc` does not match `documentation`).
 3. Otherwise `qa`.
 
 The route is logged. No LLM classification call.
@@ -179,7 +180,7 @@ Each skill is a folder with `SKILL.md` (instructions and output format), loaded 
 
 | Skill | Steps |
 |---|---|
-| `qa` | retrieve → answer only from `<context>` with `[n]` markers → send citations |
+| `qa` | retrieve → answer only from `<context>` with `[n]` markers (streamed) → send citations |
 | `essay` | retrieve on the topic (+ last answer if present, added to the prompt) → generate with `ship30/SKILL.md` → if words outside 1,125–1,375, one retry with "expand/shorten to ~1,250 words" (draft passed back as the assistant turn) → append sources → save as Markdown artifact. The essay is not streamed into the chat (the retry would replace it); the chat gets a status line and a one-line message with title and word count |
 | `artifact` | retrieve on the topic → generate Markdown or HTML per `artifact/SKILL.md` (HTML if the request says `html` or `one-pager`, unless it says `markdown`) → sanitize HTML → save → `artifact` event |
 | `chat` | fixed short reply about what the assistant can do (PRD §1.3, assumption 7: "fixed-style reply"); no retrieval, no LLM call |
@@ -197,7 +198,7 @@ For Anthropic, the LLM adapter calls the Claude Agent SDK (`query()`) with every
 - **Timeouts:** `LLM_TIMEOUT_S` is an idle timeout (no data for that long), not a total, so long answers can finish. Retry once only if no token was streamed yet; a retry mid-answer would duplicate text.
 - **History:** the prompt includes the last 2 completed messages of the session (each cut to 1,000 characters) so follow-ups like "what did she say about pricing?" resolve.
 - **Day-1 spike result (2026-10-09, `spike/agent_sdk_ollama.py`, SDK 0.2.165, Ollama 0.30.8, RTX 3050 4 GB):** SDK `query()` → Ollama's Anthropic endpoint with `qwen3:4b` *works*: the in-process `search_transcripts` tool was called once and the answer used its result. But it took 434 s to the first block and 464 s in total, versus 21–27 s for the same tool call via `/api/chat`. Ollama also served the SDK at a 4096-token context (no way to pass `num_ctx` through the SDK), which is too small for the retrieved context. **Decision: use the direct `/api/chat` fallback for Ollama.** The Anthropic path through the SDK was not run (no API key at spike time) and still needs to be confirmed.
-- The Python SDK runs the Claude Code CLI, so the API image installs Node.
+- The Python SDK runs the Claude Code CLI, which the wheel bundles as a native binary (`_bundled/claude`, ELF on Linux), so Node is not needed at runtime. The Python stage of the image still installs `nodejs` from an earlier assumption; it can be dropped.
 
 ### 6.4 Configuration (`.env.example`)
 ```
@@ -235,18 +236,20 @@ Chat answers are also model output but render in the main page (not the iframe),
 
 Consequence (documented in the viewer note): links inside artifacts are shown but do not navigate; the user can copy them. Citation chips in the chat (outside the iframe) are normal links.
 
-Other: secrets only from env; logs redact keys and truncate message text; DB port bound to 127.0.0.1.
+Other: secrets only from env (`ANTHROPIC_API_KEY` is a `SecretStr`, never logged; `.env` is excluded from the Docker build context); logs never contain message text, only ids, routes, scores and timings; DB port bound to 127.0.0.1.
 
 ## 8. Observability
-- JSON logs (`structlog`): `request_id, session_id, route, provider, model, retrieval_top_score, retrieval_ms, ttft_ms, latency_ms, error_code`.
+- JSON logs (`structlog`). One `turn_done` line per answer: `request_id, session_id, route, provider, model, retrieval_top_score, ttft_ms, latency_ms, error_code`. (`retrieval_ms` is not logged yet; step 8's eval measures retrieval latency.) Every request also logs `request` with method, path, status and latency.
 - `request_id` returned in `X-Request-ID` and in every error.
-- Named failure events: `provider_unavailable`, `provider_timeout`, `retrieval_empty`, `db_error`, `artifact_sanitized` (with removed-element count), `artifact_rejected`.
+- Failure events: `provider_timeout` (per attempt), `retrieval_empty`, `retrieval_refused` (`reason`: `personal_data` / `not_a_guest`), `db_error`, `artifact_sanitized` (with removed-element count), `artifact_rejected`, `internal_error`, `ingest_failed`. `provider_unavailable` appears as `error_code` on `turn_done`.
+- Other events: `routed`, `essay_generated` (`word_count`, `retried`, `in_range`), `artifact_saved`, `provider_set`, `schema_applied`, `episode_ingested`.
 
 ## 9. Resilience
 
 | Failure | Behavior |
 |---|---|
-| Ollama down | `provider_unavailable` + `ollama serve`; UI offers Switch to Cloud if configured |
+| Ollama down | `provider_unavailable` + `ollama serve`; UI offers Retry, and Switch to Cloud if configured |
+| Ollama fails to load the model | On the 4 GB dev GPU, loading sometimes fails with a CUDA out-of-memory error depending on what else uses the GPU; the error streams as `provider_unavailable` with Ollama's message. Once loaded it is stable. Fix: close GPU-heavy apps or restart Ollama, then Retry |
 | Model not pulled | Error with `ollama pull <model>` |
 | No API key | Cloud disabled in `/config` and UI |
 | Timeout | Retry once, then `provider_timeout`; message stored with `status=error` |
@@ -263,19 +266,22 @@ Docker Compose:
 ```
 The API image is built from the repo root (`backend/Dockerfile`, multi-stage): a Node stage runs `npm ci && npm run build` in `web/`, and the Python stage copies `web/dist` to `static/`, which FastAPI serves at `/` after the `/api/v1` routes.
 
-Commands: `make up` (build + start), `make ingest`, `make test`, `make eval`. Open http://localhost:8000.
+Commands: `make up` (build + start), `make ingest`, `make test` (runs pytest inside the running `api` container, so `make up` first), `make eval`. Open http://localhost:8000.
 
-## 11. Tests (pytest, LLM mocked)
+## 11. Tests (pytest, LLM and embeddings mocked)
 
-| Area | Tests |
+114 tests. They run inside the `api` container against a separate `lenny_test` database that is created per run and filled by running the real ingest pipeline over fixture transcripts (`backend/tests/fixtures/`) with a deterministic bag-of-words embedder; no test touches real data.
+
+| File | Covers |
 |---|---|
-| API | 422 on bad input, error shape, `/health`, `/ready` with DB down, SSE event order |
-| Persistence | session isolation (AC3), data survives reconnect |
-| Ingestion | each header format parses; sponsor paragraph removed; duplicate dropped; re-run skips unchanged |
-| Retrieval | known quote → correct episode in top 5 (small fixture DB); out-of-scope → empty; privacy and non-guest guards |
-| Router | table of phrases → expected route; hint wins |
-| Providers | unavailable, timeout + one retry, missing key |
-| Sanitizer | XSS payload list stripped; size cap |
-| Essay | retry triggered on word-count miss |
+| `test_health.py` | `/health`; `/ready` with DB up and down (503); UI served at `/` while `/api` 404s keep the error shape |
+| `test_errors.py` | error shape for 404, 422, 503 `db_unavailable`, 500; `X-Request-ID` echoed |
+| `test_ingest.py` | each speaker-header format; sponsor paragraph removed, normal "sponsor" sentence kept; `use code` only on sponsor reads; tags stripped; duplicate and non-episode dropped; shared `video_id` links nulled; chunk speaker/timestamp; re-run skips unchanged |
+| `test_retrieval.py` | known quote → right episode; out-of-scope → empty; personal-data and non-guest guards (and the questions they must let through); follow-up query; 2-per-episode / top-5 |
+| `test_llm.py` | Ollama request body (`think: false`, `num_ctx`); Ollama down; model missing; timeout retried once; no retry after tokens streamed; missing Anthropic key |
+| `test_chat.py` | router table; SSE order and persisted message; title from first question; session isolation (AC3); refusal and `chat` paths; 422 validation; provider unavailable/timeout stored as `status=error`; `/config`; `turn_done` log fields without message text |
+| `test_artifacts.py` | XSS payload list stripped; allowed markup kept; 200 KB cap; essay retry (short, long, only once, not when in range); topic extraction; essay and HTML artifact endpoints; session-scoped `GET /artifacts`; oversized artifact rejected |
 
-`eval/run_eval.py` (not in CI) reports M1–M4. Manual UI checks: `docs/manual-test-plan.md`.
+Not covered by pytest: the real models (checked by hand and by `make eval`), the UI, and data surviving `docker compose restart` (AC9). These are in `docs/manual-test-plan.md`.
+
+`eval/run_eval.py` (not in CI) reports M1–M4.

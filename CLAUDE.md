@@ -27,8 +27,8 @@ backend/tests/   web/   eval/   docs/   docker-compose.yml   Makefile   .env.exa
 
 ## Commands
 - `make up` → `docker compose up -d --build` (open http://localhost:8000)
-- `make ingest` → run ingestion inside the api container
-- `make test` → `pytest` (LLM and embeddings mocked; DB tests use the compose DB)
+- `make ingest` → run ingestion inside the api container (`make ingest ARGS="--limit 5"` for a quick check)
+- `make test` → `pytest` inside the running `api` container, so `make up` first (LLM and embeddings mocked; tests use a separate `lenny_test` database created per run)
 - `make eval` → `python eval/run_eval.py`
 
 ## Conventions

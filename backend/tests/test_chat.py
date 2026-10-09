@@ -44,6 +44,8 @@ def test_sse_order_and_message_persisted(client: TestClient) -> None:
     assert citations[0]["url"] == "https://www.youtube.com/watch?v=x&t=65s"
     done = events[-1][1]
     assert (done["provider"], done["model"]) == ("fake", "fake-1")
+    assert done["retrieval_top_score"] == 0.81
+    assert citations[0]["slug"] == "gamma"
 
     session = client.get(f"/api/v1/sessions/{sid}").json()
     assert session["title"] == "Why does retention compound for growth?"

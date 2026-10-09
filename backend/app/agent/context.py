@@ -41,6 +41,7 @@ def timestamp_url(url: str | None, ts: str | None) -> str | None:
 def citation(hit: Hit) -> dict[str, Any]:
     return {
         "chunk_id": hit.chunk_id,
+        "slug": hit.slug,
         "title": hit.title,
         "guest": hit.guest,
         "url": timestamp_url(hit.url, hit.ts),
