@@ -1,0 +1,386 @@
+{
+  "version": 1,
+  "corpus_commit": "be8ab89a890a833cbba2c892178f823fff178c65",
+  "notes": [
+    "gold_anchors are verbatim phrases (whitespace/quote-normalized, case-insensitive) that occur exactly once in the episode transcript.",
+    "One anchor = the gold passage contains it. Two anchors = the gold span runs from the first to the second (host question plus guest answer).",
+    "The eval script resolves anchors to character offsets in episodes.clean_text after cleaning; a retrieved chunk counts as a passage-level hit if its [start_char,end_char] overlaps the span.",
+    "Answers are intentionally not stored: M1 checks citation validity against gold_episode/anchors, and quality is scored manually on ~10 questions."
+  ],
+  "items": [
+    {
+      "id": "g01",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "What is Naomi Gleit's 'understand, identify, and execute' framework and where did it come from?",
+      "gold_episode": "naomi-gleit",
+      "gold_anchors": [
+        "identify, and execute"
+      ]
+    },
+    {
+      "id": "g02",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "How does Shreyas Doshi say product managers can recognize their 'L' (leverage) tasks?",
+      "gold_episode": "shreyas-doshi",
+      "gold_anchors": [
+        "those are the tasks that are bothering them the most"
+      ]
+    },
+    {
+      "id": "g03",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "Does the SPACE framework tell teams which metrics to use?",
+      "gold_episode": "nicole-forsgren",
+      "gold_anchors": [
+        "It doesn't tell you what metric to use"
+      ]
+    },
+    {
+      "id": "g04",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "What happens at the end of April Dunford's sales pitch structure: objections and the ask?",
+      "gold_episode": "april-dunford",
+      "gold_anchors": [
+        "optional objection step"
+      ]
+    },
+    {
+      "id": "g05",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What is signposting in writing and why does it help?",
+      "gold_episode": "wes-kao",
+      "gold_anchors": [
+        "Signposting is using certain words, phrases, formatting"
+      ]
+    },
+    {
+      "id": "g06",
+      "kind": "grounded",
+      "type": "attribution",
+      "question": "Which growth framework does Elena Verna call her next favorite, the one Lenny co-wrote?",
+      "gold_episode": "elena-verna",
+      "gold_anchors": [
+        "written by you, Lenny, and Dan, which is a race car framework"
+      ]
+    },
+    {
+      "id": "g07",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "How should you interview customers to get real stories instead of generalizations?",
+      "gold_episode": "teresa-torres",
+      "gold_anchors": [
+        "Tell me about the last time you watched a movie"
+      ]
+    },
+    {
+      "id": "g08",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "What is Julie Zhuo's first tip for delivering hard feedback?",
+      "gold_episode": "julie-zhuo",
+      "gold_anchors": [
+        "don't wait until something bad has happened"
+      ]
+    },
+    {
+      "id": "g09",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What did Uri Levine learn when he asked failed founders when they knew the team was wrong?",
+      "gold_episode": "uri-levine",
+      "gold_anchors": [
+        "within the first month that the team is not right"
+      ]
+    },
+    {
+      "id": "g10",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What was Airbnb spending on AdWords by 2019 according to Brian Chesky?",
+      "gold_episode": "brian-chesky",
+      "gold_anchors": [
+        "a billion dollars on AdWords"
+      ]
+    },
+    {
+      "id": "g11",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "Did Netflix ever try advertising on its site, and when?",
+      "gold_episode": "gibson-biddle",
+      "gold_anchors": [
+        "2005 through 2008"
+      ]
+    },
+    {
+      "id": "g12",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "When hiring, does Casey Winters favor people good at execution or at generating ideas?",
+      "gold_episode": "casey-winters",
+      "gold_anchors": [
+        "good at execution over people who are good at generating ideas"
+      ]
+    },
+    {
+      "id": "g13",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What did Marty Cagan have to do before he was allowed to become a product manager?",
+      "gold_episode": "marty-cagan",
+      "gold_anchors": [
+        "visited 30 customers in person"
+      ]
+    },
+    {
+      "id": "g14",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "How does outcome-based pricing play out in negotiation, according to Madhavan Ramanujam?",
+      "gold_episode": "madhavan-ramanujam",
+      "gold_anchors": [
+        "putting skin in the game"
+      ]
+    },
+    {
+      "id": "g15",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "How has Amazon Prime expanded over time according to Ethan Evans?",
+      "gold_episode": "ethan-evans",
+      "gold_anchors": [
+        "First it was two-day in the US"
+      ]
+    },
+    {
+      "id": "g16",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "Why was early e-commerce software built the way it was, according to Tobi Lutke?",
+      "gold_episode": "tobi-lutke",
+      "gold_anchors": [
+        "all the way it was because of path dependence"
+      ]
+    },
+    {
+      "id": "g17",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "How does Cursor keep process light as the company grows?",
+      "gold_episode": "michael-truell",
+      "gold_anchors": [
+        "hiring people that are level-headed"
+      ]
+    },
+    {
+      "id": "g18",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "What is artifact-based communication, as Hilary Gridley describes it?",
+      "gold_episode": "hilary-gridley",
+      "gold_anchors": [
+        "Everyone at the company reads the strategy document"
+      ]
+    },
+    {
+      "id": "g19",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What does Camille Fournier say about simple tech stacks versus scaled organizations?",
+      "gold_episode": "camille-fournier",
+      "gold_anchors": [
+        "what works as a one person show, doesn't always work in a scaled organization"
+      ]
+    },
+    {
+      "id": "g20",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What is the 'power of because' that Jake Knapp and John Zeratsky mention?",
+      "gold_episode": "jake-knapp-john-zeratsky",
+      "gold_anchors": [
+        "a funny study about the power of because"
+      ]
+    },
+    {
+      "id": "g21",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "Why does Bob Moesta say you should not hypothesize the jobs to be done in a room?",
+      "gold_episode": "bob-moesta",
+      "gold_anchors": [
+        "sit in a room and hypothesize what the jobs are"
+      ]
+    },
+    {
+      "id": "g22",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "How does LinkedIn avoid counting bystanders when measuring feed engagement?",
+      "gold_episode": "tomer-cohen",
+      "gold_anchors": [
+        "I'm counting bypassers"
+      ]
+    },
+    {
+      "id": "g23",
+      "kind": "grounded",
+      "type": "framework",
+      "question": "What is ensembling in prompt engineering?",
+      "gold_episode": "sander-schulhoff",
+      "gold_anchors": [
+        "the idea with ensembling"
+      ]
+    },
+    {
+      "id": "g24",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "Should startups be early or late to a new distribution channel, according to Brian Balfour?",
+      "gold_episode": "brian-balfour",
+      "gold_anchors": [
+        "better to be early than to be super late to this game"
+      ]
+    },
+    {
+      "id": "g25",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "What does Drew Houston mean by the 'meta game' in gaming?",
+      "gold_episode": "drew-houston",
+      "gold_anchors": [
+        "the meta game, which in gaming is a pretty specific thing"
+      ]
+    },
+    {
+      "id": "g26",
+      "kind": "grounded",
+      "type": "fact",
+      "question": "How did Dylan Field map the design network when he was an intern?",
+      "gold_episode": "dylan-field",
+      "gold_anchors": [
+        "Gephi, which was a network visualization tool"
+      ]
+    },
+    {
+      "id": "g27",
+      "kind": "grounded",
+      "type": "host_question",
+      "question": "Does managing up become less important as you get more senior, according to Wes Kao?",
+      "gold_episode": "wes-kao",
+      "gold_anchors": [
+        "What advice do you have for someone to get better at managing up",
+        "no matter how senior I got"
+      ]
+    },
+    {
+      "id": "g28",
+      "kind": "grounded",
+      "type": "host_question",
+      "question": "What personal experience led Shreyas Doshi to the LNO framework?",
+      "gold_episode": "shreyas-doshi",
+      "gold_anchors": [
+        "something you've called LNO framework",
+        "when I just joined Google as a relatively new PM"
+      ]
+    },
+    {
+      "id": "g29",
+      "kind": "grounded",
+      "type": "host_question",
+      "question": "Why does Brian Chesky say founders should not delegate away product?",
+      "gold_episode": "brian-chesky",
+      "gold_anchors": [
+        "I need to take the reins again",
+        "delegated away the thing they're best at"
+      ]
+    },
+    {
+      "id": "g30",
+      "kind": "grounded",
+      "type": "host_question",
+      "question": "How did Dropbox get started for Drew Houston?",
+      "gold_episode": "drew-houston",
+      "gold_anchors": [
+        "just start wherever you want to start about this time of the history of Dropbox",
+        "personal frustration"
+      ]
+    },
+    {
+      "id": "o01",
+      "kind": "out_of_scope",
+      "type": "off_topic",
+      "question": "What's the weather in Paris today?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o02",
+      "kind": "out_of_scope",
+      "type": "off_topic",
+      "question": "Write a Python function that reverses a linked list.",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o03",
+      "kind": "out_of_scope",
+      "type": "off_topic",
+      "question": "Who won the 2022 FIFA World Cup?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o04",
+      "kind": "out_of_scope",
+      "type": "off_topic",
+      "question": "What is the best treatment for a sprained ankle?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o05",
+      "kind": "out_of_scope",
+      "type": "off_topic",
+      "question": "How do I file taxes as a freelancer in Germany?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o06",
+      "kind": "out_of_scope",
+      "type": "off_topic",
+      "question": "What cluster size should I use in Kubernetes for 10,000 requests per second?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o07",
+      "kind": "out_of_scope",
+      "type": "near_domain_trap",
+      "question": "What did Lenny's guests recommend for quantum computing startups?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o08",
+      "kind": "out_of_scope",
+      "type": "near_domain_trap",
+      "question": "What does Lenny's Podcast say about the best Bitcoin trading strategy?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o09",
+      "kind": "out_of_scope",
+      "type": "false_attribution_trap",
+      "question": "What did Steve Jobs say on Lenny's Podcast about growth loops?",
+      "expected": "refuse: transcripts do not cover this"
+    },
+    {
+      "id": "o10",
+      "kind": "out_of_scope",
+      "type": "privacy",
+      "question": "What is Lenny Rachitsky's home address and phone number?",
+      "expected": "refuse: transcripts do not cover this"
+    }
+  ]
+}
