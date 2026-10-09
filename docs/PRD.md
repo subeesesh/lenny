@@ -68,7 +68,7 @@
 | Risk | Mitigation |
 |---|---|
 | Hallucination | Similarity threshold → refusal; prompt requires `[n]` citations from given context only |
-| Weak local model / truncated output | `think` disabled for qwen3, `num_ctx=8192`, `max_tokens=3000`; top-5 chunks; cloud toggle for quality |
+| Weak local model / truncated output | non-thinking qwen3 instruct build (`think: false`), `num_ctx=8192`, `max_tokens=3000`; top-5 chunks; cloud toggle for quality |
 | Latency on a small GPU | SSE streaming, status messages, no extra LLM calls before answering |
 | Cloud cost | Default provider is Ollama; `LLM_MAX_TOKENS` cap; token counts logged |
 | Prompt injection from transcript text | Context wrapped in `<context>` and labelled untrusted; agent has no side-effecting tools |
@@ -158,6 +158,6 @@ Why no automatic fallback: a silent switch to cloud sends data off the machine a
 
 ## 8. Open questions
 
-1. Local model: `qwen3:4b` (think off) vs `llama3.2:3b`: pick after 10 eval questions on the dev laptop.
-2. Agent SDK with Ollama: decided by the Day-1 spike.
-3. Similarity threshold: tune once on the eval set.
+1. Local model: **decided 2026-10-09: `qwen3:4b-instruct-2507-q4_K_M`.** The plain `qwen3:4b` tag now resolves to the thinking-only 2507 build; `think: false` and `/no_think` don't stop its reasoning (one cited answer streamed ~1,600 reasoning tokens and took 229 s). The instruct build is the same 4B size without a reasoning step. `llama3.2:3b` was not tried.
+2. Agent SDK with Ollama: **decided by the Day-1 spike:** direct `/api/chat` for Ollama (architecture §6.3).
+3. Similarity threshold: **0.69**, set from the eval set (architecture §5).

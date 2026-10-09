@@ -6,24 +6,9 @@ from fastapi.responses import JSONResponse
 from psycopg_pool import PoolTimeout
 from starlette.exceptions import HTTPException
 
-STATUS = {
-    "validation_error": 422,
-    "not_found": 404,
-    "provider_not_configured": 400,
-    "provider_unavailable": 503,
-    "provider_timeout": 504,
-    "db_unavailable": 503,
-    "internal_error": 500,
-}
+from app.errors import STATUS, AppError
 
 log = structlog.get_logger()
-
-
-class AppError(Exception):
-    def __init__(self, code: str, message: str) -> None:
-        super().__init__(message)
-        self.code = code
-        self.message = message
 
 
 def error_response(request: Request, code: str, message: str, status: int | None = None) -> JSONResponse:

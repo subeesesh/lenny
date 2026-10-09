@@ -17,7 +17,7 @@ Take-home for a Forward Deployed Engineer role. Due 2026-10-12 EOD.
 - Backend: Python 3.12, FastAPI, `psycopg[binary]` + `psycopg_pool` (no ORM), `pgvector`, `pydantic-settings`, `structlog`, `httpx`, `nh3`, `langchain-text-splitters` (splitter only), `claude-agent-sdk`, `pytest`, `pytest-asyncio`.
 - DB: `pgvector/pgvector:pg16`. Schema in `backend/schema.sql`, applied on startup.
 - Frontend: Vite + React + TypeScript, plain CSS, `marked`. Built into static files served by FastAPI.
-- Models: Ollama on the host (`qwen3:4b` with thinking off, `num_ctx=8192`; `nomic-embed-text` with `search_document: ` / `search_query: ` prefixes). Cloud: Anthropic.
+- Models: Ollama on the host (`qwen3:4b-instruct-2507-q4_K_M`, a non-thinking build, with `think: false` and `num_ctx=8192`; `nomic-embed-text` with `search_document: ` / `search_query: ` prefixes). Cloud: Anthropic.
 
 ## Layout
 ```

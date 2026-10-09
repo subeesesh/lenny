@@ -16,7 +16,7 @@ Status: v3 (minimal) · 2026-10-09
 App
 ├── Sidebar: New chat · session list (title, relative time)
 ├── Chat
-│   ├── Header: session title · provider badge ("Local · qwen3:4b" / "Cloud · Claude")
+│   ├── Header: session title · provider badge ("Local · qwen3:4b-instruct" / "Cloud · Claude")
 │   ├── Messages: user / assistant · citation chips · artifact cards · status line
 │   └── Composer: textarea · Send · quick actions (Write Ship 30 essay · Make one-pager)
 └── Artifact pane (opens when an artifact exists)
