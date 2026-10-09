@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS chunks (
   embedding   vector(768) NOT NULL,
   UNIQUE (episode_id, ord)
 );
--- No vector index: ~13k rows, exact cosine scan is fast enough (measured in eval).
+-- No vector index: ~16.5k rows, exact cosine scan is fast enough (measured in eval).
 
 CREATE TABLE IF NOT EXISTS sessions (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -138,19 +138,20 @@ SSE events, in order: `status` `{"stage":"retrieving"|"generating"}` → `citati
 4. Chunk (4.4).
 5. Embed with `nomic-embed-text` via Ollama, prefixing each chunk with `search_document: `. Batch insert.
 6. Print a summary: episodes kept/skipped, duplicates dropped, sponsor paragraphs removed, chunk count, failures. A failed episode is logged and skipped.
+7. `make ingest ARGS="--limit 5"` processes only the first N kept episodes (for a quick check).
 
 ### 4.3 Cleaning (deliberately small)
 | Rule | Detail |
 |---|---|
-| Duplicates | Same normalized body hash → keep one (12 pairs; 303 → 291) |
+| Duplicates | Same normalized body hash (letters only, after removing the `# Title` line and timestamps) → keep the shortest slug (12 pairs; 303 → 291) |
 | Non-episodes | Skip `interview-q-compilation`, `teaser_2021` |
 | Bad links | If two kept episodes share a `video_id`, null both URLs (citation shows title + guest without link) |
-| Speaker headers | One regex covers `Name (HH:MM:SS):`, `Name (MM:SS):`, `(HH:MM:SS):`, `Name:`, `[HH:MM:SS] Name:`; `Lenny`/`LENNY RACHITSKY` → `Lenny Rachitsky` |
-| Sponsor reads | Drop paragraphs matching `brought to you by`, `promo code`, `use code`, `sponsored by` |
+| Speaker headers | One regex covers `Name (HH:MM:SS):` (names may contain a parenthetical, e.g. `Jiaona Zhang (JZ)`), `Name (MM:SS):`, `(HH:MM:SS):` (same speaker continues), `Name:` (whole line, capitalized words only, so prose like "Two is:" is not a header), `[HH:MM:SS] Name:`; `Lenny`/`LENNY RACHITSKY` → `Lenny Rachitsky` |
+| Sponsor reads | Drop paragraphs matching `brought to you by`, `promo code`, `sponsored by`, and `use code` followed by a capitalized code (`use code LENNY`); plain `use code` also matched guests saying "use code"/"use Codex" |
 | Tags | Strip `[inaudible ...]`, `[crosstalk ...]`, `[laughs]` |
 
 ### 4.4 Chunking
-`RecursiveCharacterTextSplitter` (separators `\n\n`, `\n`, `. `, ` `), ~1,800 characters (~400 tokens), 200-character overlap. Speaker labels stay inline (`Lenny Rachitsky: ...`) so the embedding knows who is talking; timestamps are removed from the text and stored in `start_ts` (the last timestamp seen at or before the chunk start). Expected: ~13k chunks.
+`RecursiveCharacterTextSplitter` (separators `\n\n`, `\n`, `. `, ` `), ~1,800 characters (~400 tokens), 200-character overlap. Speaker labels stay inline (`Lenny Rachitsky: ...`) so the embedding knows who is talking; timestamps are removed from the text and stored in `start_ts` (the last timestamp seen at or before the chunk start). Measured (2026-10-09): 289 episodes → 16,461 chunks (avg 1,468 chars), 705 sponsor paragraphs removed; full run ~9 min on an RTX 3050.
 
 Why not turn-aware chunking: it is more code and a second experiment; the recursive splitter with inline speaker labels already keeps most questions and answers together. Possible future work.
 

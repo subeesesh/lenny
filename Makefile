@@ -7,7 +7,7 @@ down:
 	docker compose down
 
 ingest:
-	docker compose exec api python -m app.ingest
+	docker compose exec api python -m app.ingest $(ARGS)
 
 test:
 	docker compose exec api pytest

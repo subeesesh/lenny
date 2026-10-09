@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS chunks (
   embedding   vector(768) NOT NULL,
   UNIQUE (episode_id, ord)
 );
--- No vector index: ~13k rows, exact cosine scan is fast enough (measured in eval).
+-- No vector index: ~16.5k rows, exact cosine scan is fast enough (measured in eval).
 
 CREATE TABLE IF NOT EXISTS sessions (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
