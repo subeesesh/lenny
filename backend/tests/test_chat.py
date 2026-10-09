@@ -7,45 +7,8 @@ from pydantic import SecretStr
 
 from app.agent.router import route
 from app.config import get_settings
-from app.retrieval.search import Hit, Retrieval
-from tests.fakes import FakeProvider, timeout, unavailable
-
-HIT = Hit(1, "gamma", "Gamma episode", "Cy Guest", "https://www.youtube.com/watch?v=x", "00:01:05", "Cy Guest", "Retention compounds.", 0.81)
-
-
-class FakeRetriever:
-    def __init__(self, result: Retrieval | None = None) -> None:
-        self.result = result or Retrieval(hits=[HIT], top_score=0.81)
-        self.calls: list[tuple[str, str | None]] = []
-
-    async def __call__(self, question: str, previous: str | None) -> Retrieval:
-        self.calls.append((question, previous))
-        return self.result
-
-
-def use(client: TestClient, retriever: FakeRetriever | None = None, provider: FakeProvider | None = None) -> tuple[FakeRetriever, FakeProvider]:
-    retriever, provider = retriever or FakeRetriever(), provider or FakeProvider()
-    client.app.state.retriever = retriever
-    client.app.state.provider_factory = lambda: provider
-    return retriever, provider
-
-
-def new_session(client: TestClient) -> str:
-    res = client.post("/api/v1/sessions", json={"user_meta": {"display_name": "Tester"}})
-    assert res.status_code == 201
-    return res.json()["id"]
-
-
-def ask(client: TestClient, session_id: str, content: str, **extra: Any) -> list[tuple[str, Any]]:
-    res = client.post(f"/api/v1/sessions/{session_id}/messages", json={"content": content, **extra})
-    assert res.status_code == 200
-    assert res.headers["content-type"].startswith("text/event-stream")
-    events = []
-    for block in res.text.strip().split("\n\n"):
-        name, data = block.split("\n", 1)
-        events.append((name.removeprefix("event: "), json.loads(data.removeprefix("data: "))))
-    return events
-
+from app.retrieval.search import Retrieval
+from tests.fakes import FakeProvider, FakeRetriever, ask, new_session, timeout, unavailable, use
 
 @pytest.mark.parametrize(
     ("content", "hint", "expected"),

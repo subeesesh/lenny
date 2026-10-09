@@ -9,7 +9,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from app.agent.skills import TurnResult, run_turn
+from app.agent.context import TurnResult
+from app.agent.skills import run_turn
 from app.db import repo
 from app.errors import AppError
 
@@ -97,7 +98,20 @@ async def post_message(session_id: UUID, body: MessageCreate, request: Request) 
         )
         if error:
             yield sse("error", error.to_dict(request_id))
-        else:
-            yield sse("done", {"message_id": message_id, "provider": result.provider, "model": result.model, "latency_ms": latency_ms})
+            return
+        if result.artifact:
+            a = result.artifact
+            artifact = await repo.add_artifact(state.pool, session_id, message_id, a.type, a.title, a.content)
+            log.info("artifact_saved", artifact_type=a.type, size=len(a.content.encode()))
+            yield sse("artifact", artifact)
+        yield sse("done", {"message_id": message_id, "provider": result.provider, "model": result.model, "latency_ms": latency_ms})
 
     return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/artifacts/{artifact_id}")
+async def get_artifact(artifact_id: UUID, session_id: UUID, request: Request) -> dict[str, Any]:
+    artifact = await repo.get_artifact(request.app.state.pool, artifact_id, session_id)
+    if artifact is None:
+        raise AppError("not_found", "Artifact not found.")
+    return artifact

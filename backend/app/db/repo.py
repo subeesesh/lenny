@@ -96,3 +96,25 @@ async def add_assistant_message(
         await conn.execute("UPDATE sessions SET updated_at = now() WHERE id = %s", (session_id,))
     assert row is not None
     return row[0]
+
+
+async def add_artifact(
+    pool: AsyncConnectionPool, session_id: UUID, message_id: int, type_: str, title: str, content: str
+) -> Row:
+    row = await fetch_one(
+        pool,
+        """INSERT INTO artifacts (session_id, message_id, type, title, content) VALUES (%s, %s, %s, %s, %s)
+           RETURNING id, type, title""",
+        (session_id, message_id, type_, title, content),
+    )
+    assert row is not None
+    return row
+
+
+async def get_artifact(pool: AsyncConnectionPool, artifact_id: UUID, session_id: UUID) -> Row | None:
+    return await fetch_one(
+        pool,
+        """SELECT id, session_id, message_id, type, title, content, created_at FROM artifacts
+           WHERE id = %s AND session_id = %s""",
+        (artifact_id, session_id),
+    )

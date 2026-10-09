@@ -122,7 +122,7 @@ Codes: `validation_error` 422, `not_found` 404, `provider_not_configured` 400, `
 | GET | `/sessions` | List, newest first |
 | GET | `/sessions/{id}` | Session + messages + artifacts |
 | POST | `/sessions/{id}/messages` | `{"content": "1–4000 chars", "route_hint": null\|"essay"\|"artifact"}` → SSE |
-| GET | `/artifacts/{id}` | Artifact |
+| GET | `/artifacts/{id}?session_id=` | Artifact; `session_id` is required so the query is scoped to the session like every other message/artifact query (404 if it belongs to another session) |
 
 SSE events, in order: `status` `{"stage":"retrieving"|"generating"}` (one or both) → `citations` `[...]` → `token` `{"text"}` (many) → `artifact` `{"id","type","title"}` (essay/artifact only) → `done` `{"message_id","provider","model","latency_ms"}`. On failure: `error` with the error object.
 
@@ -180,9 +180,11 @@ Each skill is a folder with `SKILL.md` (instructions and output format), loaded 
 | Skill | Steps |
 |---|---|
 | `qa` | retrieve → answer only from `<context>` with `[n]` markers → send citations |
-| `essay` | retrieve on the topic (+ last answer if present) → generate with `ship30/SKILL.md` → if words outside 1,125–1,375, one retry with "expand/shorten to ~1,250 words" → append sources → save as Markdown artifact |
-| `artifact` | retrieve on the topic → generate Markdown or HTML per `artifact/SKILL.md` → sanitize HTML → save → `artifact` event |
+| `essay` | retrieve on the topic (+ last answer if present, added to the prompt) → generate with `ship30/SKILL.md` → if words outside 1,125–1,375, one retry with "expand/shorten to ~1,250 words" (draft passed back as the assistant turn) → append sources → save as Markdown artifact. The essay is not streamed into the chat (the retry would replace it); the chat gets a status line and a one-line message with title and word count |
+| `artifact` | retrieve on the topic → generate Markdown or HTML per `artifact/SKILL.md` (HTML if the request says `html` or `one-pager`, unless it says `markdown`) → sanitize HTML → save → `artifact` event |
 | `chat` | fixed short reply about what the assistant can do (PRD §1.3, assumption 7: "fixed-style reply"); no retrieval, no LLM call |
+
+Essay and artifact skills retrieve on the topic with the request phrasing removed ("Make an HTML one-pager on X" → "X"): the phrasing lowered similarity by 0.01–0.06 and pushed a valid one-pager request (0.685) under the 0.69 threshold.
 
 `ship30/SKILL.md` lists the principles taken from the Ship 30 for 30 guide (one idea, strong hook, short paragraphs, headings/bullets/bold, specific takeaway) and cites the guide.
 
@@ -226,7 +228,7 @@ Generated HTML is untrusted. Two layers:
 
 | Layer | What it does |
 |---|---|
-| Server, on save | `nh3` allowlist sanitizer: keeps text, headings, lists, tables, `div/span/section`, `style` attributes, `img` with `data:` src only, `a` with `http(s)` href only. Removes `script`, `iframe`, `object`, `embed`, `form`, `link`, `meta`, event handlers, `javascript:` URLs. Max 200 KB. |
+| Server, on save | `nh3` allowlist sanitizer: keeps text, headings, lists, tables, `div/span/section`, `style` attributes, `img` with `data:` src only, `a` with `http(s)` href only. Removes `script`, `iframe`, `object`, `embed`, `form`, `link`, `meta`, event handlers, `javascript:` URLs, and `style` attributes containing `url(`, `expression(` or `@import`. Max 200 KB (Markdown too). Markdown is not run through `nh3` (it would escape `>` and break blockquotes); any raw HTML in it is contained by the browser layer. |
 | Browser, on render | Both Markdown (rendered with `marked`) and HTML go into `<iframe sandbox="" srcdoc=...>` with `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">`. No scripts, no same-origin access, no forms, no popups, no network requests. |
 
 Consequence (documented in the viewer note): links inside artifacts are shown but do not navigate; the user can copy them. Citation chips in the chat (outside the iframe) are normal links.
