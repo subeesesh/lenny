@@ -181,7 +181,7 @@ Each skill is a folder with `SKILL.md` (instructions and output format), loaded 
 | Skill | Steps |
 |---|---|
 | `qa` | retrieve → answer only from `<context>` with `[n]` markers (streamed) → send citations |
-| `essay` | retrieve on the topic (+ last answer if present, added to the prompt) → generate with `ship30/SKILL.md` → if words outside 1,125–1,375, one retry with "expand/shorten to ~1,250 words" (draft passed back as the assistant turn) → append sources → save as Markdown artifact. The essay is not streamed into the chat (the retry would replace it); the chat gets a status line and a one-line message with title and word count |
+| `essay` | retrieve on the topic (+ last answer if present, added to the prompt) → generate with `ship30/SKILL.md` → if words outside 1,125–1,375, one retry that states the current count, the 1,125–1,375 range and roughly how many words to add or cut, and asks for the full essay back (draft passed back as the assistant turn). The 4B model's first drafts land at ~650–1,050 words, so the retry is the normal path; asking for a word delta instead of a new total stopped extreme overshoots (859 → 1,871 with the old wording) → append sources → save as Markdown artifact. The essay is not streamed into the chat (the retry would replace it); the chat gets a status line and a one-line message with title and word count |
 | `artifact` | retrieve on the topic → generate Markdown or HTML per `artifact/SKILL.md` (HTML if the request says `html` or `one-pager`, unless it says `markdown`) → sanitize HTML → save → `artifact` event |
 | `chat` | fixed short reply about what the assistant can do (PRD §1.3, assumption 7: "fixed-style reply"); no retrieval, no LLM call |
 
@@ -244,7 +244,7 @@ Other: secrets only from env (`ANTHROPIC_API_KEY` is a `SecretStr`, never logged
 - JSON logs (`structlog`). One `turn_done` line per answer: `request_id, session_id, route, provider, model, retrieval_top_score, ttft_ms, latency_ms, error_code`. (`retrieval_ms` is not logged yet; step 8's eval measures retrieval latency.) Every request also logs `request` with method, path, status and latency.
 - `request_id` returned in `X-Request-ID` and in every error.
 - Failure events: `provider_timeout` (per attempt), `retrieval_empty`, `retrieval_refused` (`reason`: `personal_data` / `not_a_guest`), `db_error`, `artifact_sanitized` (with removed-element count), `artifact_rejected`, `internal_error`, `ingest_failed`. `provider_unavailable` appears as `error_code` on `turn_done`.
-- Other events: `routed`, `essay_generated` (`word_count`, `retried`, `in_range`), `artifact_saved`, `provider_set`, `schema_applied`, `episode_ingested`.
+- Other events: `routed`, `essay_retry` (`first_word_count`), `essay_generated` (`word_count`, `retried`, `in_range`), `artifact_saved`, `provider_set`, `schema_applied`, `episode_ingested`.
 
 ## 9. Resilience
 

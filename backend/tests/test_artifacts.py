@@ -82,7 +82,8 @@ async def test_essay_retry_triggered_when_too_short() -> None:
     assert len(provider.calls) == 2
     retry_messages = provider.calls[1][1]
     assert retry_messages[-2] == {"role": "assistant", "content": essay(600)}
-    assert retry_messages[-1]["content"].startswith("Expand the essay to about 1250 words (it has 600)")
+    assert retry_messages[-1]["content"].startswith("The essay has 600 words and must end up between 1,125 and 1,375 words. Add about 650 words")
+    assert retry_messages[-1]["content"].endswith("Return the full essay, nothing else.")
 
 
 async def test_essay_retry_shortens_when_too_long_and_happens_only_once() -> None:
@@ -90,7 +91,7 @@ async def test_essay_retry_shortens_when_too_long_and_happens_only_once() -> Non
     _, words, retried = await write_essay(provider, "ship30", [{"role": "user", "content": "write"}])
     assert (words, retried) == (1500, True)
     assert len(provider.calls) == 2
-    assert provider.calls[1][1][-1]["content"].startswith("Shorten")
+    assert "Cut about 750 words" in provider.calls[1][1][-1]["content"]
 
 
 async def test_essay_in_range_is_not_retried() -> None:

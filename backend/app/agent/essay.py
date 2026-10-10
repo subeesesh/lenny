@@ -48,8 +48,15 @@ def essay_request(content: str, history: list[Message], context: str) -> str:
 
 
 def length_fix(words: int) -> str:
-    direction = "Expand" if words < MIN_WORDS else "Shorten"
-    return f"{direction} the essay to about {TARGET_WORDS} words (it has {words}). Keep the same idea, structure and citations."
+    """Asking for a word delta, not a new total, keeps the 4B model's rewrite inside the range."""
+    if words < MIN_WORDS:
+        change = f"Add about {TARGET_WORDS - words} words by expanding the existing sections with more detail from the passages; do not add new sections."
+    else:
+        change = f"Cut about {words - TARGET_WORDS} words by tightening the existing sections; keep every section."
+    return (
+        f"The essay has {words} words and must end up between {MIN_WORDS:,} and {MAX_WORDS:,} words. {change} "
+        "Keep the same idea, hook, takeaway and citations. Return the full essay, nothing else."
+    )
 
 
 async def write_essay(provider: Provider, system: str, messages: list[Message]) -> tuple[str, int, bool]:
@@ -57,6 +64,7 @@ async def write_essay(provider: Provider, system: str, messages: list[Message]) 
     words = word_count(essay)
     if MIN_WORDS <= words <= MAX_WORDS:
         return essay, words, False
+    log.info("essay_retry", first_word_count=words)
     retry = [*messages, {"role": "assistant", "content": essay}, {"role": "user", "content": length_fix(words)}]
     essay = clean_output(await generate(provider, system, retry))
     return essay, word_count(essay), True
