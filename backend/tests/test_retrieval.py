@@ -4,7 +4,7 @@ import pytest
 from psycopg_pool import AsyncConnectionPool
 
 from app.db.pool import create_pool
-from app.retrieval.search import Hit, QueryEmbedder, Retrieval, diversify, query_text, retrieve
+from app.retrieval.search import Hit, QueryEmbedder, Retrieval, diversify, query_text, refers_back, retrieve
 from tests.fakes import RecordingEmbedder
 
 
@@ -105,3 +105,36 @@ def test_diversify_keeps_four_per_episode_and_top_k() -> None:
     hits = [Hit(i, slug, "t", None, None, None, None, "x", 1 - i / 100) for i, slug in enumerate("aaaaabbbcd")]
     kept = diversify(hits, top_k=5)
     assert [h.slug for h in kept] == ["a", "a", "a", "a", "b"]
+
+
+@pytest.mark.parametrize(
+    ("question", "follow_up"),
+    [
+        ("Can you give me an example of that?", True),
+        ("Turn the second recommendation into a practical seven-day experiment", True),
+        ("What did she say about pricing?", True),
+        ("Tell me more", True),
+        ("Why does it matter?", True),
+        ("How would I apply that idea to a B2B product?", True),
+        ("How should an early-stage startup identify its ideal customer profile?", False),
+        ("Retention is the only growth metric that compounds", False),
+        ("What strategies are there that work for onboarding?", False),
+        ("How do startups find their first customers?", False),
+    ],
+)
+def test_refers_back(question: str, follow_up: bool) -> None:
+    assert refers_back(question) is follow_up
+
+
+async def test_new_topic_is_searched_on_its_own(pool: AsyncConnectionPool) -> None:
+    embed = RecordingEmbedder()
+    result = await ask(pool, "Retention is the only growth metric that compounds", previous="How do I price my product?", embed=embed)
+    assert embed.texts == ["Retention is the only growth metric that compounds"]
+    assert result.hits[0].slug == "gamma"
+
+
+async def test_new_topic_with_no_match_falls_back_to_the_previous_question(pool: AsyncConnectionPool) -> None:
+    embed = RecordingEmbedder()
+    previous = "Why is retention the only growth metric that compounds?"
+    await ask(pool, "How should a startup approach this whole area", previous=previous, embed=embed, min_score=0.3)
+    assert embed.texts == ["How should a startup approach this whole area", f"{previous}\nHow should a startup approach this whole area"]

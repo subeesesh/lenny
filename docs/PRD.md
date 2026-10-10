@@ -40,7 +40,7 @@
 4. The evaluator has Docker and Ollama installed, with the demo models pulled.
 5. A small local model gives weaker answers and essays than a cloud model. Local is the required demo path; cloud is the quality path.
 6. Cloud access uses an Anthropic API key in `.env` (optional).
-7. "Strictly from transcripts" means no outside knowledge in answers. Greetings and "what can you do" questions get a short fixed-style reply; any other request (coding, weather, etc.) is refused.
+7. "Strictly from transcripts" means no outside knowledge in answers. Exception added at the product owner's request: when the user asks to apply the guests' advice (a plan, experiment or checklist), the answer may build one from the cited ideas, says up front that the plan is an application rather than something said on the podcast, cites a passage for every step, and adds no outside facts or numbers. Greetings and "what can you do" questions get a short fixed-style reply; any other request (coding, weather, etc.) is refused.
 
 ### 1.4 Scope
 

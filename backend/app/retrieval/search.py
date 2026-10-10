@@ -1,3 +1,4 @@
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
@@ -14,6 +15,15 @@ QUERY_PREFIX = "search_query: "
 CANDIDATES = 15
 PER_EPISODE = 4
 EMPTY_MESSAGE = "The transcripts don't cover this."
+DEMONSTRATIVE = r"(?:that|this|these|those)"
+REFERS_BACK = re.compile(
+    rf"\b(?:of|about|on|like|do|does|did|explain|with|from|is|was|are|were)\s+(?:{DEMONSTRATIVE}|it)\b"
+    rf"|\b{DEMONSTRATIVE}\s+(?:ones?|ideas?|points?|advice|frameworks?|approach(?:es)?|steps?|tips?|recommendations?)\b"
+    rf"|\b{DEMONSTRATIVE}\W*$"
+    r"|\b(?:it|they|them|he|she|him)\b|\belaborate\b|\bexpand\b|\bexamples?\b|\btell me more\b|\bmore (?:on|about)\b"
+    r"|\bthe (?:first|second|third|fourth|fifth|last|previous|above)\b",
+    re.I,
+)
 
 log = structlog.get_logger()
 
@@ -52,6 +62,11 @@ def ollama_query_embedder(base_url: str, model: str, timeout_s: float = 30) -> Q
 
 def query_text(question: str, previous: str | None) -> str:
     return f"{previous}\n{question}" if previous else question
+
+
+def refers_back(question: str) -> bool:
+    """Follow-ups point at the previous turn ("give me an example of that", "the second one"); new topics don't."""
+    return bool(REFERS_BACK.search(question))
 
 
 def diversify(hits: list[Hit], top_k: int) -> list[Hit]:
@@ -100,8 +115,14 @@ async def retrieve(
     if name and not guards.is_known_person(name, await known_people(pool)):
         log.info("retrieval_refused", reason="not_a_guest")
         return Retrieval(refusal=guards.non_guest_message(name), reason="not_a_guest")
-    vector = await embed(query_text(question, previous))
-    hits = diversify(await nearest(pool, vector, max(CANDIDATES, 3 * top_k)), top_k)
+
+    async def search(text: str) -> list[Hit]:
+        return diversify(await nearest(pool, await embed(text), max(CANDIDATES, 3 * top_k)), top_k)
+
+    follow_up = bool(previous) and refers_back(question)
+    hits = await search(query_text(question, previous) if follow_up else question)
+    if previous and not follow_up and (not hits or hits[0].score < min_score):
+        hits = await search(query_text(question, previous))
     top = hits[0].score if hits else None
     if top is None or top < min_score:
         log.info("retrieval_empty", retrieval_top_score=top)
