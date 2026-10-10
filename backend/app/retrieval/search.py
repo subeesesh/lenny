@@ -64,7 +64,7 @@ def diversify(hits: list[Hit], top_k: int) -> list[Hit]:
     return kept[:top_k]
 
 
-async def nearest(pool: AsyncConnectionPool, vector: list[float]) -> list[Hit]:
+async def nearest(pool: AsyncConnectionPool, vector: list[float], limit: int = CANDIDATES) -> list[Hit]:
     q = str(vector)
     async with pool.connection() as conn:
         cur = await conn.execute(
@@ -72,7 +72,7 @@ async def nearest(pool: AsyncConnectionPool, vector: list[float]) -> list[Hit]:
                       1 - (c.embedding <=> %s::vector) AS score
                FROM chunks c JOIN episodes e ON e.id = c.episode_id
                ORDER BY c.embedding <=> %s::vector LIMIT %s""",
-            (q, q, CANDIDATES),
+            (q, q, limit),
         )
         return [Hit(*row) for row in await cur.fetchall()]
 
@@ -100,7 +100,8 @@ async def retrieve(
     if name and not guards.is_known_person(name, await known_people(pool)):
         log.info("retrieval_refused", reason="not_a_guest")
         return Retrieval(refusal=guards.non_guest_message(name), reason="not_a_guest")
-    hits = diversify(await nearest(pool, await embed(query_text(question, previous))), top_k)
+    vector = await embed(query_text(question, previous))
+    hits = diversify(await nearest(pool, vector, max(CANDIDATES, 3 * top_k)), top_k)
     top = hits[0].score if hits else None
     if top is None or top < min_score:
         log.info("retrieval_empty", retrieval_top_score=top)

@@ -21,6 +21,7 @@ from app.agent.context import (
 from app.llm.base import Message, Provider
 
 MIN_WORDS, TARGET_WORDS, MAX_WORDS = 1125, 1250, 1375
+ESSAY_TOP_K = 10
 WORD = re.compile(r"[A-Za-z0-9][\w'’-]*")
 TITLE = re.compile(r"^#\s+(.+)$", re.M)
 FENCE = re.compile(r"^```\w*\n|\n```\s*$")
@@ -79,7 +80,7 @@ async def run_essay(
     result: TurnResult,
 ) -> AsyncIterator[Event]:
     yield "status", {"stage": "retrieving"}
-    retrieval = await retriever(topic_of(content), previous_user(history))
+    retrieval = await retriever(topic_of(content), previous_user(history), ESSAY_TOP_K)
     if retrieval.refusal:
         async for event in say(result, retrieval.refusal):
             yield event

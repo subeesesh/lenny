@@ -167,3 +167,4 @@ def test_essay_retrieves_on_topic_not_request(client: TestClient) -> None:
     retriever, _ = use(client, provider=FakeProvider([essay(1250)]))
     ask(client, new_session(client), "Write a Ship 30 essay on retention loops")
     assert retriever.calls == [("retention loops", None)]
+    assert retriever.top_ks == [10]

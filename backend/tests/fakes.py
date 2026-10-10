@@ -65,9 +65,11 @@ class FakeRetriever:
     def __init__(self, result: Retrieval | None = None) -> None:
         self.result = result or Retrieval(hits=[HIT], top_score=0.81)
         self.calls: list[tuple[str, str | None]] = []
+        self.top_ks: list[int | None] = []
 
-    async def __call__(self, question: str, previous: str | None) -> Retrieval:
+    async def __call__(self, question: str, previous: str | None, top_k: int | None = None) -> Retrieval:
         self.calls.append((question, previous))
+        self.top_ks.append(top_k)
         return self.result
 
 

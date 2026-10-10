@@ -80,8 +80,8 @@ async def run_turn(
     result.route = route(content, hint)
     log.info("routed", route=result.route)
 
-    async def recording_retriever(question: str, previous: str | None) -> Retrieval:
-        retrieval = await retriever(question, previous)
+    async def recording_retriever(question: str, previous: str | None, top_k: int | None = None) -> Retrieval:
+        retrieval = await retriever(question, previous, top_k)
         result.top_score = retrieval.top_score
         return retrieval
 

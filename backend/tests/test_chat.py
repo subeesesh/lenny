@@ -77,6 +77,7 @@ def test_session_isolation(client: TestClient) -> None:
     assert [m["content"] for m in messages_b] == ["First question in B", "Hello world [1]"]
     assert retriever.calls[1] == ("First question in B", None)
     assert retriever.calls[2] == ("Follow-up in A", "Secret question in A")
+    assert retriever.top_ks == [None, None, None]
     prompt_b = json.dumps(provider.calls[1][1])
     assert "Secret question in A" not in prompt_b
     assert "Secret question in A" in json.dumps(provider.calls[2][1])

@@ -35,9 +35,9 @@ def create_app(database_url: str | None = None) -> FastAPI:
             log.error("db_error", error_code="db_unavailable", stage="schema", error=type(exc).__name__)
         embed = ollama_query_embedder(settings.ollama_base_url, settings.embed_model)
 
-        async def retriever(question: str, previous: str | None) -> Retrieval:
+        async def retriever(question: str, previous: str | None, top_k: int | None = None) -> Retrieval:
             return await retrieve(
-                pool, embed, question, previous, settings.retrieval_top_k, settings.retrieval_min_score
+                pool, embed, question, previous, top_k or settings.retrieval_top_k, settings.retrieval_min_score
             )
 
         app.state.skills = load_skills()
