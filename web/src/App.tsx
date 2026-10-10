@@ -18,6 +18,16 @@ const TILES = [
   { icon: <PageIcon size={20} />, title: "Make a one-pager", text: "A shareable page you can copy.", prefill: "Make a one-pager on " },
 ];
 
+/** Saves the name in the browser; if the browser forgets it, it is recovered from the newest chat (stored on the server). */
+function rememberName(name: string): string {
+  try {
+    localStorage.setItem(NAME_KEY, name);
+  } catch {
+    /* private mode: the server copy in each chat still restores it next time */
+  }
+  return name;
+}
+
 const readName = () => {
   try {
     return localStorage.getItem(NAME_KEY);
@@ -67,7 +77,10 @@ export default function App() {
   const loadSessions = useCallback(async () => {
     setSessionsFailed(false);
     try {
-      setSessions(await api.sessions());
+      const list = await api.sessions();
+      setSessions(list);
+      const savedName = list.find((s) => s.user_meta?.display_name)?.user_meta?.display_name;
+      if (savedName) setDisplayName((current) => current ?? rememberName(savedName));
       setServerDown(false);
     } catch (err) {
       setSessionsFailed(true);
@@ -325,18 +338,7 @@ export default function App() {
       <div className="visually-hidden" aria-live="polite">
         {announcement}
       </div>
-      {!displayName && (
-        <NameDialog
-          onSave={(name) => {
-            try {
-              localStorage.setItem(NAME_KEY, name);
-            } catch {
-              /* private mode: keep the name for this visit only */
-            }
-            setDisplayName(name);
-          }}
-        />
-      )}
+      {!displayName && (sessions !== null || sessionsFailed) && <NameDialog onSave={(name) => setDisplayName(rememberName(name))} />}
     </div>
   );
 }

@@ -24,7 +24,7 @@ App
     └── Sandboxed preview + note "Sandboxed: scripts, forms, links and external content are blocked"
 ```
 
-On first visit a small dialog asks for a display name (saved in the browser and sent with each new session). "New chat" only clears the view; the session is created when the first message is sent, so empty chats never appear in the list.
+On first visit a small dialog asks for a display name (saved in the browser and sent with each new session). If the browser has lost it (site data cleared, another address such as 127.0.0.1, a private window), it is recovered from the newest chat's stored `user_meta` instead of asking again; the dialog appears only when no chat has a name, and only after the chat list has loaded. "New chat" only clears the view; the session is created when the first message is sent, so empty chats never appear in the list.
 
 ## 3. Responsive
 

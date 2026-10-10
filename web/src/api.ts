@@ -24,7 +24,13 @@ export type Message = {
   status: "complete" | "error";
 };
 
-export type SessionSummary = { id: string; title: string; created_at: string; updated_at: string };
+export type SessionSummary = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  user_meta?: { display_name?: string };
+};
 export type SessionDetail = SessionSummary & {
   messages: Message[];
   artifacts: (ArtifactRef & { message_id: number | null })[];
