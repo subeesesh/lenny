@@ -1,6 +1,6 @@
 # Lenny Growth Assistant
 
-A chat assistant that answers questions about **Lenny's Podcast** strictly from the episode transcripts, with clickable sources, and turns what the guests said into a **Ship 30 for 30 essay** or an **HTML one-pager**. It runs fully local on Ollama by default; Anthropic Claude is an optional cloud provider you switch to with one click (never automatically).
+A chat assistant that answers questions about **Lenny's Podcast** strictly from the episode transcripts, with clickable sources, and turns what the guests said into a **Ship 30 for 30 essay** or an **HTML one-pager**. It runs fully local on Ollama by default, either calling Ollama directly or through the **Claude Agent SDK** (pointed at Ollama's Anthropic-compatible API); Anthropic Claude is an optional cloud provider. You switch between the three with one click, never automatically.
 
 - **Ask:** answers stream with `[n]` citations and source chips that link to the YouTube timestamp. Questions the transcripts don't cover get "The transcripts don't cover this."
 - **Write a Ship 30 essay:** a ~1,250-word atomic essay grounded in 10 passages, with a sources list, opened in a side viewer.
@@ -14,8 +14,9 @@ Product and design decisions: [docs/PRD.md](docs/PRD.md) · [docs/architecture.m
 ```
 Browser (React UI, served by the API) ──HTTP/SSE──▶ FastAPI (Docker: api)
                                                       ├─ router ─▶ skill: qa | essay | artifact | chat  (backend/skills/*/SKILL.md)
-                                                      │              └─ llm adapter ─▶ Ollama on the host (default)
-                                                      │                              └▶ Anthropic via Claude Agent SDK (optional)
+                                                      │              └─ llm adapter ─▶ Ollama on the host, direct /api/chat (default)
+                                                      │                              ├▶ Ollama through the Claude Agent SDK
+                                                      │                              └▶ Anthropic through the Claude Agent SDK (optional)
                                                       ├─ retrieval: guards → nomic-embed-text query → pgvector cosine top-15
                                                       │             → ≤4 per episode → top 5 (essays: 10) → threshold 0.69
                                                       └─ repositories ─▶ PostgreSQL 16 + pgvector (Docker: db)
@@ -72,11 +73,15 @@ Then open **http://localhost:8000**, enter a display name, and ask a question.
 | `make eval` | `python eval/run_eval.py` | Run the eval set against the running app |
 | `make down` | `docker compose down` | Stop (data stays in the `pgdata` volume) |
 
+## Local through the Claude Agent SDK
+
+Pick **Local · Agent SDK** in the provider menu to run the same answers through the Claude Agent SDK (`query()`, built-in tools disabled), pointed at Ollama's Anthropic-compatible API instead of Anthropic. It needs Ollama started with `OLLAMA_CONTEXT_LENGTH=8192` (see [Performance](#performance-on-small-gpus)). It is about twice as slow as the direct path on a 4 GB GPU (Q&A ~16 s, one-pager ~78 s), so direct stays the default. Details: [architecture §6.3](docs/architecture.md#63-claude-agent-sdk).
+
 ## Switching to Anthropic (cloud)
 
 1. Put your key in `.env`: `ANTHROPIC_API_KEY=sk-ant-...` (optionally change `ANTHROPIC_MODEL`).
 2. Restart the API: `docker compose up -d` (env changes need the container recreated).
-3. In the app, click the provider badge in the header and choose **Cloud**. The next message uses it; the badge and the `turn_done` log line show which provider answered.
+3. In the app, click the provider badge in the header and choose **Cloud** (the menu also has **Local** and **Local · Agent SDK**). The next message uses it; the badge and the `turn_done` log line show which provider answered.
 
 Without a key, Cloud is shown disabled with the reason. The app never switches provider on its own: when Ollama fails, the error card offers **Retry** and, if a key is configured, **Switch to Cloud** (PRD §5).
 
@@ -84,7 +89,7 @@ Without a key, Cloud is shown disabled with the reason. The app never switches p
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `LLM_PROVIDER` | `ollama` | Provider at startup: `ollama` or `anthropic` |
+| `LLM_PROVIDER` | `ollama` | Provider at startup: `ollama` (direct), `ollama-sdk` (through the Claude Agent SDK) or `anthropic` |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | Ollama as seen from the container |
 | `OLLAMA_MODEL` | `qwen3:4b-instruct-2507-q4_K_M` | Chat model. Use this instruct build: the plain `qwen3:4b` tag is a thinking-only model that ignores `think: false` |
 | `OLLAMA_NUM_CTX` | `8192` | Context window |
@@ -107,13 +112,14 @@ Measured on a laptop with a 4 GB RTX 3050 and 16 GB RAM (details: [architecture 
 1. Ollama server environment (Windows: user environment variables, then quit and restart Ollama from the tray):
    - `OLLAMA_KV_CACHE_TYPE=q8_0` (8-bit KV cache, halves its memory)
    - `OLLAMA_MAX_LOADED_MODELS=2` (keep the embedder and the chat model loaded together)
+   - `OLLAMA_CONTEXT_LENGTH=8192` (needed for **Local · Agent SDK**, which can't pass Ollama options; also keeps both local paths on the same context so switching doesn't reload the model)
 2. In `.env`: `OLLAMA_NUM_GPU=32`, then `docker compose up -d`.
 
 Result: first token ~1.9 s (p50 over the eval set), a full answer ~8 s, a one-pager ~1 min, an essay ~3 min. On a bigger GPU, leave `OLLAMA_NUM_GPU` empty.
 
 ## Tests and eval
 
-- `make test`: 115 pytest tests run inside the `api` container against a separate `lenny_test` database built from fixture transcripts; the LLM and embeddings are mocked, so no model is needed. They cover the error shape, `/health` and `/ready`, each ingestion rule, retrieval and both guards, the providers (Ollama down, model missing, timeout + one retry, no key), the router, SSE order, session isolation, the XSS payload list and the essay retry. List per file: [architecture §11](docs/architecture.md#11-tests-pytest-llm-and-embeddings-mocked).
+- `make test`: 119 pytest tests run inside the `api` container against a separate `lenny_test` database built from fixture transcripts; the LLM and embeddings are mocked, so no model is needed. They cover the error shape, `/health` and `/ready`, each ingestion rule, retrieval and both guards, the providers (Ollama down, model missing, timeout + one retry, no key), the router, SSE order, session isolation, the XSS payload list and the essay retry. List per file: [architecture §11](docs/architecture.md#11-tests-pytest-llm-and-embeddings-mocked).
 - `make eval`: runs the 40 questions in `eval/eval_set.json` (30 grounded, 10 out of scope) plus 10 essays through the running app and writes `eval/results.md`. Add `--essays 0` to skip the essays (~6 min instead of ~35 min locally).
 
 Latest local results ([eval/results.md](eval/results.md)):

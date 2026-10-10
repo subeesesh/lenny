@@ -159,6 +159,9 @@ def test_config_get_and_put(client: TestClient, monkeypatch: pytest.MonkeyPatch)
     res = client.put("/api/v1/config", json={"provider": "anthropic"})
     assert res.status_code == 400 and res.json()["error"]["code"] == "provider_not_configured"
 
+    res = client.put("/api/v1/config", json={"provider": "ollama-sdk"})
+    assert res.json()["active"] == {"provider": "ollama-sdk", "model": get_settings().ollama_model}
+    assert [p["name"] for p in config["providers"]] == ["ollama", "ollama-sdk", "anthropic"]
     res = client.put("/api/v1/config", json={"provider": "ollama", "model": "qwen3:1.7b"})
     assert res.json()["active"] == {"provider": "ollama", "model": "qwen3:1.7b"}
     assert client.put("/api/v1/config", json={"provider": "gpt"}).status_code == 422

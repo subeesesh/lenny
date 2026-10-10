@@ -3,11 +3,14 @@ from collections.abc import Callable
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
+from app.config import Settings
 from app.errors import AppError
-from app.llm.anthropic import AnthropicProvider, render_prompt
+from app.llm.anthropic import AnthropicProvider, OllamaSdkProvider, render_prompt
 from app.llm.base import Provider, ProviderTimeout, stream_with_retry
 from app.llm.ollama import OllamaProvider
+from app.llm.providers import Active, make_provider
 from tests.fakes import FakeProvider, timeout
 
 MESSAGES = [{"role": "user", "content": "hi"}]
@@ -98,3 +101,20 @@ def test_anthropic_without_key_is_not_configured() -> None:
 def test_anthropic_prompt_includes_history() -> None:
     prompt = render_prompt([{"role": "user", "content": "q1"}, {"role": "assistant", "content": "a1"}, {"role": "user", "content": "q2"}])
     assert prompt == "Earlier in this conversation:\nUser: q1\n\nAssistant: a1\n\nq2"
+
+
+def test_ollama_sdk_provider_points_the_agent_sdk_at_ollama() -> None:
+    provider = OllamaSdkProvider("http://host.docker.internal:11434", "qwen3:4b-instruct-2507-q4_K_M", 120)
+    options = provider.options("system prompt")
+    assert provider.name == "ollama-sdk"
+    assert options.env["ANTHROPIC_BASE_URL"] == "http://host.docker.internal:11434"
+    assert options.env["ANTHROPIC_API_KEY"] == ""
+    assert options.env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] == "1"
+    assert options.model == "qwen3:4b-instruct-2507-q4_K_M" and options.tools == [] and options.max_turns == 1
+
+
+def test_make_provider_routes_each_name() -> None:
+    settings = Settings(anthropic_api_key=SecretStr("sk-test"))
+    assert isinstance(make_provider(settings, Active("ollama", "m")), OllamaProvider)
+    assert isinstance(make_provider(settings, Active("ollama-sdk", "m")), OllamaSdkProvider)
+    assert isinstance(make_provider(settings, Active("anthropic", "c")), AnthropicProvider)

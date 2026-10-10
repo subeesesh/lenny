@@ -14,7 +14,7 @@ log = structlog.get_logger()
 
 
 class ConfigUpdate(BaseModel):
-    provider: Literal["ollama", "anthropic"]
+    provider: Literal["ollama", "ollama-sdk", "anthropic"]
     model: str | None = Field(None, min_length=1, max_length=100)
 
 

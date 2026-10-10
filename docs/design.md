@@ -16,7 +16,7 @@ Status: v3 (minimal) · 2026-10-09 · updated after build step 7
 App
 ├── Sidebar: New chat · session list (title, relative time, delete on hover/focus with confirmation)
 ├── Chat
-│   ├── Header: session title · provider badge ("Local · qwen3:4b-instruct" / "Cloud · claude-sonnet-4-6")
+│   ├── Header: session title · provider badge ("Local · qwen3:4b-instruct" / "Local · Agent SDK · qwen3:4b-instruct" / "Cloud · claude-sonnet-4-6")
 │   ├── Messages: user / assistant · citation chips · artifact cards · status line
 │   └── Composer: textarea · Send · quick actions (Write Ship 30 essay · Make one-pager)
 └── Artifact pane (opens when an artifact exists)
@@ -39,7 +39,7 @@ Chat text max width ~72 characters; composer stays at the bottom.
 
 | Component | Behavior |
 |---|---|
-| Provider badge | Pill with icon + text (`Local`/`Cloud` · model, with the quantization suffix trimmed); click opens a menu listing Ollama and Anthropic with "available" or the reason it isn't (from `/config`); disabled while an answer is streaming |
+| Provider badge | Pill with icon + text (`Local`/`Local · Agent SDK`/`Cloud` · model; laptop icon for both local paths, cloud icon for Cloud; with the quantization suffix trimmed); click opens a menu listing Local (Ollama direct), Local · Agent SDK (Ollama through the Claude Agent SDK) and Cloud (Anthropic) with "available" or the reason it isn't (from `/config`); disabled while an answer is streaming |
 | Citation chip | `[1] Guest — Episode` link to YouTube at the timestamp (plain text if no URL); inline `[n]` in the answer match chip numbers |
 | Artifact card | In-chat card with title, type and Open button |
 | Status line | "Searching transcripts…" → "Writing…" |
@@ -103,7 +103,7 @@ Chat text max width ~72 characters; composer stays at the bottom.
 3. Follow-up uses previous topic.
 4. Essay button → status → artifact opens; word count in logs.
 5. "Make an HTML one-pager" → renders; a crafted `<script>` payload does nothing.
-6. Switch provider → badge and logs show the new one.
+6. Switch provider (Local → Local · Agent SDK → Cloud) → badge and logs show the new one.
 7. Stop Ollama → error with fix; restart → Retry works.
 8. Empty API key → cloud disabled with reason.
 9. 375 px width → drawer and sheet work.

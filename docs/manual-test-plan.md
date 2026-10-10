@@ -39,7 +39,8 @@ Mark each row ✅ / ❌ with a note. Rows marked **AC** cover PRD acceptance cri
 
 | # | Steps | Expected | Result |
 |---|---|---|---|
-| 15 **AC8** | Click the provider badge | Menu: Local "available"; Cloud disabled with "Add ANTHROPIC_API_KEY to .env…"; Esc closes | |
+| 15 **AC8** | Click the provider badge | Menu: Local and Local · Agent SDK "available"; Cloud disabled with "Add ANTHROPIC_API_KEY to .env…"; Esc closes | |
+| 15b **AC7** | Choose **Local · Agent SDK**, ask a covered question, then switch back to **Local** | Badge shows "Local · Agent SDK", the answer streams with sources (about twice as slow), `docker compose logs api` shows `"provider": "ollama-sdk"` on `turn_done`; after switching back the badge and logs show `ollama` | |
 | 16 **AC8** | Quit Ollama, ask a covered question; start Ollama, click **Retry** | Red card: Ollama not reachable, `ollama serve` with Copy, Retry (no Switch to Cloud without a key); after restart, Retry answers | |
 | 17 | `docker compose stop api`, send a question; `docker compose start api`, click the banner's Retry | Top banner "Can't reach the server" with Retry; banner disappears after Retry | |
 | 18 **AC7** | With a key in `.env` (restart the api): switch the badge to Cloud and ask a question | Badge shows Cloud; `turn_done` logs `provider: anthropic`; answer streams | |

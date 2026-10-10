@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
 
-    llm_provider: Literal["ollama", "anthropic"] = "ollama"
+    llm_provider: Literal["ollama", "ollama-sdk", "anthropic"] = "ollama"
     ollama_base_url: str = "http://host.docker.internal:11434"
     ollama_model: str = "qwen3:4b-instruct-2507-q4_K_M"
     ollama_num_ctx: int = 8192

@@ -88,7 +88,7 @@
 
 **F4: Artifact.** "Make an HTML one-pager" / "Make a markdown doc" → sanitized artifact opens beside the chat; Preview / Source / Copy.
 
-**F5: Switch model.** Header badge → choose Ollama or Anthropic → next message uses it. Unavailable providers are greyed out with the reason.
+**F5: Switch model.** Header badge → choose Local (Ollama direct), Local · Agent SDK (Ollama through the Claude Agent SDK) or Cloud (Anthropic) → next message uses it. Unavailable providers are greyed out with the reason.
 
 **F6: Resume.** Sidebar lists sessions (title = first question, truncated); clicking one reloads messages, citations, artifacts.
 
@@ -130,7 +130,7 @@ There is never an automatic switch between providers.
 
 | Situation | Behavior |
 |---|---|
-| Ollama unreachable / model missing | Error with the fix (`ollama serve` / `ollama pull <model>`); if a cloud key exists, the error offers a "Switch to Cloud" button |
+| Ollama unreachable / model missing | Error with the fix (`ollama serve` / `ollama pull <model>`); if a cloud key exists, the error offers a "Switch to Cloud" button. The same applies to both local paths (direct and through the Agent SDK) |
 | No Anthropic key | Cloud option disabled in the UI with "Add ANTHROPIC_API_KEY to .env" |
 | Any provider times out | Retry once, then a structured error with a Retry button |
 

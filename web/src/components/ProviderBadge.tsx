@@ -25,7 +25,7 @@ export function ProviderBadge({ config, disabled, onSelect }: Props) {
 
   if (!config) return <span className="badge muted">Loading…</span>;
   const active = config.providers.find((p) => p.name === config.active.provider);
-  const icon = config.active.provider === "ollama" ? <LaptopIcon /> : <CloudIcon />;
+  const icon = config.active.provider === "anthropic" ? <CloudIcon /> : <LaptopIcon />;
   const label = `${active?.label ?? config.active.provider} · ${shortModel(config.active.model)}`;
 
   return (

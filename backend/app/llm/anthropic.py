@@ -17,17 +17,15 @@ def render_prompt(messages: list[Message]) -> str:
     return f"Earlier in this conversation:\n{turns}\n\n{last['content']}"
 
 
-class AnthropicProvider:
-    """Claude via the Claude Agent SDK, with every built-in tool disabled (architecture §6.3)."""
+class AgentSdkProvider:
+    """A model behind an Anthropic-compatible API, called through the Claude Agent SDK with every built-in tool disabled."""
 
-    name = "anthropic"
-
-    def __init__(self, api_key: str, model: str, timeout_s: float) -> None:
-        if not api_key:
-            raise AppError("provider_not_configured", NO_KEY_MESSAGE)
-        self.api_key = api_key
+    def __init__(self, name: str, label: str, model: str, timeout_s: float, env: dict[str, str]) -> None:
+        self.name = name
+        self.label = label
         self.model = model
         self.timeout_s = timeout_s
+        self.env = env
 
     def options(self, system: str) -> ClaudeAgentOptions:
         return ClaudeAgentOptions(
@@ -38,8 +36,11 @@ class AnthropicProvider:
             max_turns=1,
             setting_sources=[],
             include_partial_messages=True,
-            env={"ANTHROPIC_API_KEY": self.api_key},
+            env={**self.env, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
         )
+
+    def failed(self, detail: object) -> AppError:
+        return AppError("provider_unavailable", f"{self.label} request failed: {detail}")
 
     async def stream(self, system: str, messages: list[Message]) -> AsyncIterator[str]:
         events = query(prompt=render_prompt(messages), options=self.options(system)).__aiter__()
@@ -51,10 +52,27 @@ class AnthropicProvider:
             except TimeoutError as exc:
                 raise ProviderTimeout() from exc
             except ClaudeSDKError as exc:
-                raise AppError("provider_unavailable", f"Anthropic request failed: {exc}") from exc
+                raise self.failed(exc) from exc
             if isinstance(msg, StreamEvent):
                 delta = msg.event.get("delta", {})
                 if msg.event.get("type") == "content_block_delta" and delta.get("type") == "text_delta":
                     yield delta["text"]
             elif isinstance(msg, ResultMessage) and msg.is_error:
-                raise AppError("provider_unavailable", f"Anthropic request failed: {msg.result or msg.subtype}")
+                raise self.failed(msg.result or msg.subtype)
+
+
+class AnthropicProvider(AgentSdkProvider):
+    """Claude (architecture §6.3)."""
+
+    def __init__(self, api_key: str, model: str, timeout_s: float) -> None:
+        if not api_key:
+            raise AppError("provider_not_configured", NO_KEY_MESSAGE)
+        super().__init__("anthropic", "Anthropic", model, timeout_s, {"ANTHROPIC_API_KEY": api_key})
+
+
+class OllamaSdkProvider(AgentSdkProvider):
+    """The local Ollama model through the same SDK, via Ollama's Anthropic-compatible endpoint (architecture §6.3)."""
+
+    def __init__(self, base_url: str, model: str, timeout_s: float) -> None:
+        env = {"ANTHROPIC_BASE_URL": base_url, "ANTHROPIC_AUTH_TOKEN": "ollama", "ANTHROPIC_API_KEY": ""}
+        super().__init__("ollama-sdk", "Ollama via the Agent SDK", model, timeout_s, env)
