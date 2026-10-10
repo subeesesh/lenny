@@ -5,13 +5,14 @@ import httpx
 import structlog
 from psycopg_pool import AsyncConnectionPool
 
+from app.llm.ollama import KEEP_ALIVE
 from app.retrieval import guards
 
 QueryEmbedder = Callable[[str], Awaitable[list[float]]]
 
 QUERY_PREFIX = "search_query: "
 CANDIDATES = 15
-PER_EPISODE = 2
+PER_EPISODE = 4
 EMPTY_MESSAGE = "The transcripts don't cover this."
 
 log = structlog.get_logger()
@@ -41,7 +42,8 @@ class Retrieval:
 def ollama_query_embedder(base_url: str, model: str, timeout_s: float = 30) -> QueryEmbedder:
     async def embed(text: str) -> list[float]:
         async with httpx.AsyncClient(base_url=base_url, timeout=timeout_s) as client:
-            res = await client.post("/api/embed", json={"model": model, "input": [QUERY_PREFIX + text]})
+            body = {"model": model, "input": [QUERY_PREFIX + text], "keep_alive": KEEP_ALIVE}
+            res = await client.post("/api/embed", json=body)
             res.raise_for_status()
             return res.json()["embeddings"][0]
 

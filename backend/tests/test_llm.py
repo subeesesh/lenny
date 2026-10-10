@@ -31,8 +31,15 @@ async def test_ollama_streams_with_thinking_off_and_num_ctx() -> None:
 
     assert await collect(ollama(handler)) == ["Hel", "lo"]
     assert seen["think"] is False
+    assert seen["keep_alive"] == "30m"
     assert seen["options"] == {"num_ctx": 8192, "num_predict": 3000}
     assert seen["messages"][0] == {"role": "system", "content": "sys"}
+
+
+def test_ollama_num_gpu_sent_only_when_set() -> None:
+    assert "num_gpu" not in ollama(lambda r: httpx.Response(200)).options()
+    provider = OllamaProvider("http://ollama", "m", 8192, 3000, 5, num_gpu=16)
+    assert provider.options()["num_gpu"] == 16
 
 
 async def test_ollama_down_is_provider_unavailable() -> None:

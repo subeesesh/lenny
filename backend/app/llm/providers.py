@@ -20,7 +20,8 @@ def make_provider(settings: Settings, active: Active) -> Provider:
     if active.provider == "anthropic":
         return AnthropicProvider(settings.anthropic_api_key.get_secret_value(), active.model, settings.llm_timeout_s)
     return OllamaProvider(
-        settings.ollama_base_url, active.model, settings.ollama_num_ctx, settings.llm_max_tokens, settings.llm_timeout_s
+        settings.ollama_base_url, active.model, settings.ollama_num_ctx, settings.llm_max_tokens, settings.llm_timeout_s,
+        settings.ollama_num_gpu,
     )
 
 

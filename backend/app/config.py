@@ -6,12 +6,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
 
     llm_provider: Literal["ollama", "anthropic"] = "ollama"
     ollama_base_url: str = "http://host.docker.internal:11434"
     ollama_model: str = "qwen3:4b-instruct-2507-q4_K_M"
     ollama_num_ctx: int = 8192
+    ollama_num_gpu: int | None = None
     embed_model: str = "nomic-embed-text"
     anthropic_api_key: SecretStr = SecretStr("")
     anthropic_model: str = "claude-sonnet-4-6"

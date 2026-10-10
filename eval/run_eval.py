@@ -222,7 +222,7 @@ def report(config: dict, results: list[tuple[dict, Run]], essays: list[tuple[str
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://localhost:8000")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")  # localhost costs ~2 s per request on Windows (IPv6 first)
     parser.add_argument("--essays", type=int, default=10, help="essay runs for M3 (0 to skip; ~5 min each locally)")
     parser.add_argument("--out", type=Path, default=HERE / "results.md")
     args = parser.parse_args()

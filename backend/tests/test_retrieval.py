@@ -101,7 +101,7 @@ async def test_follow_up_query_includes_previous_message(pool: AsyncConnectionPo
     assert query_text("q", None) == "q"
 
 
-def test_diversify_keeps_two_per_episode_and_top_k() -> None:
-    hits = [Hit(i, slug, "t", None, None, None, None, "x", 1 - i / 100) for i, slug in enumerate("aaabbbcccd")]
+def test_diversify_keeps_four_per_episode_and_top_k() -> None:
+    hits = [Hit(i, slug, "t", None, None, None, None, "x", 1 - i / 100) for i, slug in enumerate("aaaaabbbcd")]
     kept = diversify(hits, top_k=5)
-    assert [h.slug for h in kept] == ["a", "a", "b", "b", "c"]
+    assert [h.slug for h in kept] == ["a", "a", "a", "a", "b"]

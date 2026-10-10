@@ -6,6 +6,8 @@ import httpx
 from app.errors import AppError
 from app.llm.base import Message, ProviderTimeout
 
+KEEP_ALIVE = "30m"
+
 
 class OllamaProvider:
     name = "ollama"
@@ -17,12 +19,14 @@ class OllamaProvider:
         num_ctx: int,
         max_tokens: int,
         timeout_s: float,
+        num_gpu: int | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.base_url = base_url
         self.model = model
         self.num_ctx = num_ctx
         self.max_tokens = max_tokens
+        self.num_gpu = num_gpu
         self.timeout = httpx.Timeout(timeout_s, connect=5)
         self.transport = transport
 
@@ -32,13 +36,20 @@ class OllamaProvider:
     def model_missing(self) -> AppError:
         return AppError("provider_unavailable", f"The model {self.model} is not pulled. Run `ollama pull {self.model}`.")
 
+    def options(self) -> dict[str, int]:
+        options = {"num_ctx": self.num_ctx, "num_predict": self.max_tokens}
+        if self.num_gpu is not None:
+            options["num_gpu"] = self.num_gpu
+        return options
+
     async def stream(self, system: str, messages: list[Message]) -> AsyncIterator[str]:
         body = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, *messages],
             "stream": True,
+            "keep_alive": KEEP_ALIVE,
             "think": False,
-            "options": {"num_ctx": self.num_ctx, "num_predict": self.max_tokens},
+            "options": self.options(),
         }
         try:
             async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout, transport=self.transport) as client:

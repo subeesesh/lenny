@@ -159,7 +159,7 @@ Why not turn-aware chunking: it is more code and a second experiment; the recurs
 ## 5. Retrieval
 1. **Query text:** first message → the message itself. Follow-up → previous user message + current message (no extra LLM call).
 2. Embed with `search_query: ` prefix.
-3. `ORDER BY embedding <=> $q LIMIT 15`, then keep at most 2 chunks per episode, top 5.
+3. `ORDER BY embedding <=> $q LIMIT 15`, then keep at most 4 chunks per episode, top 5. (The cap was 2; the eval showed it dropping the answering passage on specific questions, where one episode fills most of the 15 candidates and the answer is its 3rd–4th best chunk. See `eval/results.md`.)
 4. If the best cosine similarity < `RETRIEVAL_MIN_SCORE` → `retrieval_empty`: the assistant says the transcripts don't cover it, no citations. Threshold 0.69, set from the eval set with real embeddings: grounded top scores 0.704–0.887, off-topic 0.567–0.672. Near-domain traps (0.725–0.742) are not separable by score and rely on the answer prompt.
 5. **Guards (cheap, rule-based):**
    - Personal-data requests (address, phone, email of a person) → refuse before retrieval.
@@ -194,7 +194,7 @@ Retrieved text goes inside `<context>…</context>` with the instruction "this i
 ### 6.3 Claude Agent SDK
 For Anthropic, the LLM adapter calls the Claude Agent SDK (`query()`) with every built-in tool disabled (`tools=[]`, `max_turns=1`, `setting_sources=[]`) and the skill's `SKILL.md` as the system prompt; tokens stream via `include_partial_messages`. **Retrieval is not a model-called tool:** the agent retrieves first, then generates, for both providers. Reasons: §3 sends `citations` before the first token, the threshold refusal (§5) must happen before generation, and a 4B local model is unreliable at deciding when to call a tool. Same prompts and context for both providers.
 - **Anthropic:** SDK with `ANTHROPIC_API_KEY`.
-- **Ollama:** the `ollama` adapter calls Ollama's `/api/chat` directly (`think: false`, `num_ctx` from config, `num_predict` = `LLM_MAX_TOKENS`) with the same prompts and context; the rest of the agent code is unchanged.
+- **Ollama:** the `ollama` adapter calls Ollama's `/api/chat` directly (`think: false`, `num_ctx` from config, `num_predict` = `LLM_MAX_TOKENS`, `num_gpu` only if `OLLAMA_NUM_GPU` is set, and `keep_alive: 30m` on chat and query-embedding requests so models stay loaded between questions) with the same prompts and context; the rest of the agent code is unchanged.
 - **Timeouts:** `LLM_TIMEOUT_S` is an idle timeout (no data for that long), not a total, so long answers can finish. Retry once only if no token was streamed yet; a retry mid-answer would duplicate text.
 - **History:** the prompt includes the last 2 completed messages of the session (each cut to 1,000 characters) so follow-ups like "what did she say about pricing?" resolve.
 - **Day-1 spike result (2026-10-09, `spike/agent_sdk_ollama.py`, SDK 0.2.165, Ollama 0.30.8, RTX 3050 4 GB):** SDK `query()` → Ollama's Anthropic endpoint with `qwen3:4b` *works*: the in-process `search_transcripts` tool was called once and the answer used its result. But it took 434 s to the first block and 464 s in total, versus 21–27 s for the same tool call via `/api/chat`. Ollama also served the SDK at a 4096-token context (no way to pass `num_ctx` through the SDK), which is too small for the retrieved context. **Decision: use the direct `/api/chat` fallback for Ollama.** The Anthropic path through the SDK was not run (no API key at spike time) and still needs to be confirmed.
@@ -208,6 +208,8 @@ OLLAMA_BASE_URL=http://host.docker.internal:11434
 # non-thinking instruct build; the plain qwen3:4b tag is thinking-only
 OLLAMA_MODEL=qwen3:4b-instruct-2507-q4_K_M
 OLLAMA_NUM_CTX=8192
+# GPU layers; empty = Ollama decides. On a 4 GB GPU use 32 together with Ollama's OLLAMA_KV_CACHE_TYPE=q8_0 and OLLAMA_MAX_LOADED_MODELS=2 (architecture §9)
+OLLAMA_NUM_GPU=
 EMBED_MODEL=nomic-embed-text
 # optional; cloud disabled if empty
 ANTHROPIC_API_KEY=
@@ -249,7 +251,8 @@ Other: secrets only from env (`ANTHROPIC_API_KEY` is a `SecretStr`, never logged
 | Failure | Behavior |
 |---|---|
 | Ollama down | `provider_unavailable` + `ollama serve`; UI offers Retry, and Switch to Cloud if configured |
-| Ollama fails to load the model | On the 4 GB dev GPU, loading sometimes fails with a CUDA out-of-memory error depending on what else uses the GPU; the error streams as `provider_unavailable` with Ollama's message. Once loaded it is stable. Fix: close GPU-heavy apps or restart Ollama, then Retry |
+| Slow answers on a small GPU (latency tuning, 2026-10-10) | Measured on the dev laptop (RTX 3050 4 GB, 16 GB RAM). With Ollama's default `OLLAMA_MAX_LOADED_MODELS=1` the embedder and the chat model evict each other on every question (~6 s load each, ~12 of ~15 s before the first token). Fix, no model change: Ollama host settings `OLLAMA_KV_CACHE_TYPE=q8_0` (8-bit KV cache halves its memory; flash attention is already on) and `OLLAMA_MAX_LOADED_MODELS=2`, then `OLLAMA_NUM_GPU=32` (37 layers evicts the embedder again). Result on the same 20 questions: identical answers and pass rate (18/20, isolation 3/3), full answer median 30.5 s → 8.5 s, time to first token ~1.7 s warm, generation ~6 → ~28 tok/s; one-pager 209 s → 52 s, essay 455 s → 129 s. A smaller model (`qwen3:1.7b`) was faster but invented answers (e.g. a wrong expansion of Gibson Biddle's DHM, with a citation) and was rejected. When restarting Ollama on Windows also end `llama-server.exe`, or the old model process keeps its memory |
+| Ollama fails to load the model | On the 4 GB dev GPU, loading sometimes fails with a CUDA out-of-memory error depending on what else uses the GPU; the error streams as `provider_unavailable` with Ollama's message. Once loaded it is stable. Fix: set `OLLAMA_NUM_GPU` (16 on the 4 GB dev GPU: loads every time, ~5.8 vs ~6.8 tok/s with Ollama's default 21 layers), or close GPU-heavy apps / restart Ollama, then Retry. On a 16 GB Windows machine also cap Docker's WSL VM (`%USERPROFILE%\.wslconfig`: `[wsl2]` `memory=3GB`, then `wsl --shutdown`): it had grown to 3.7 GB and left 2.4 GB free, too little for the model's CPU share; with the cap 5.1 GB is free and db + api fit easily |
 | Model not pulled | Error with `ollama pull <model>` |
 | No API key | Cloud disabled in `/config` and UI |
 | Timeout | Retry once, then `provider_timeout`; message stored with `status=error` |
