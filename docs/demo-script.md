@@ -16,7 +16,7 @@ Covers the three functions (ask, Ship 30 essay, one-pager), how it works, and on
 > "Lenny's Podcast has almost 300 episodes of great product advice, but finding what a guest actually said, and turning it into something you can share, takes hours. I built an assistant that answers strictly from the transcripts, shows its sources, and writes shareable pieces from them. It runs fully local by default."
 
 **0:20–1:05 · Ask (screen)**
-- Point at the badge: *"This runs locally on Ollama, a 4B model, nothing leaves the machine."*
+- Point at the badge: *"This runs locally on Ollama, a 4B model, through the Claude Agent SDK; nothing leaves the machine."*
 - Type: `What is Naomi Gleit's "understand, identify, and execute" framework?`
 - While it streams (first token in about 2 s): *"It searches about 16,000 transcript chunks, then answers only from what it found. Every claim has a numbered citation."*
 - Click a source chip, which opens YouTube at the exact timestamp: *"Every source jumps to the moment in the episode."*
@@ -37,7 +37,7 @@ Covers the three functions (ask, Ship 30 essay, one-pager), how it works, and on
 - *"I measured it on a 40-question eval: the right episode was cited 30 out of 30 times, and all 10 out-of-scope questions were refused. Time to first token is 1.9 seconds on a 4 GB laptop GPU, down from 11 seconds."*
 - **The trade-off:** *"The biggest decision was model size. A 1.7B model was four times faster, but in my tests it confidently invented the meaning of a well-known framework, and even cited a source for it. For a tool whose whole promise is 'only from the transcripts', I kept the slower 4B model and got the speed back by fixing how the models are loaded instead."*
 - Optional, if you have 5 seconds: click the badge: *"Cloud is one click away, but never automatic; sending data off the machine should be the user's choice."*
-- Optional, about 10 seconds: in the same menu pick **Local · Agent SDK** and ask a short question: *"The same answer can also run through the Claude Agent SDK, pointed at the local model instead of Anthropic. It's about twice as slow on this laptop, so the direct path is the default."*
+- Optional, about 10 seconds: open the same menu: *"The same Agent SDK adapter talks to the local model or to Claude in the cloud; there's also a direct Ollama path that can tune the GPU split for small laptops."*
 
 **3:15–3:30 · Close (camera)**
 > "Everything is in the repo: one `docker compose up`, about twelve minutes from clone to working app, with the PRD, architecture, eval results and the full build log with the coding agent. Thanks for watching."

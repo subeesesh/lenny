@@ -35,6 +35,8 @@ echo ==^> Pulling models (skipped if already present)
 for %%m in (%CHAT_MODEL% %EMBED_MODEL%) do (
   ollama list | findstr /b /c:"%%m" >nul || ollama pull %%m || (set "MSG=Could not pull %%m. Check your internet connection." & goto :fail)
 )
+ollama create lenny-qwen3-4b -f ollama\Modelfile >nul 2>&1 || (set "MSG=Could not create the local chat model. Run: ollama create lenny-qwen3-4b -f ollama\Modelfile" & goto :fail)
+echo Local chat model lenny-qwen3-4b is ready (8192 context, for the Agent SDK path).
 
 echo.
 echo ==^> Building and starting the app (first run takes a few minutes)
@@ -44,7 +46,7 @@ echo.
 echo ==^> Waiting for the API
 for /l %%i in (1,1,60) do (
   curl -sf http://127.0.0.1:8000/api/v1/ready >nul 2>&1 && goto :ready
-  timeout /t 2 /nobreak >nul
+  ping -n 3 127.0.0.1 >nul
 )
 set "MSG=The API did not become ready. Run: docker compose logs api" & goto :fail
 

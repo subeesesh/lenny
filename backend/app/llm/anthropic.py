@@ -5,6 +5,7 @@ from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKError, ResultMessage, 
 
 from app.errors import AppError
 from app.llm.base import Message, ProviderTimeout
+from app.llm.ollama import create_fix, ollama_status
 
 NO_KEY_MESSAGE = "Cloud is not configured. Add ANTHROPIC_API_KEY to .env and restart."
 
@@ -42,7 +43,11 @@ class AgentSdkProvider:
     def failed(self, detail: object) -> AppError:
         return AppError("provider_unavailable", f"{self.label} request failed: {detail}")
 
+    async def check(self) -> None:
+        """Hook for a fast reachability check before starting the CLI."""
+
     async def stream(self, system: str, messages: list[Message]) -> AsyncIterator[str]:
+        await self.check()
         events = query(prompt=render_prompt(messages), options=self.options(system)).__aiter__()
         while True:
             try:
@@ -76,3 +81,10 @@ class OllamaSdkProvider(AgentSdkProvider):
     def __init__(self, base_url: str, model: str, timeout_s: float) -> None:
         env = {"ANTHROPIC_BASE_URL": base_url, "ANTHROPIC_AUTH_TOKEN": "ollama", "ANTHROPIC_API_KEY": ""}
         super().__init__("ollama-sdk", "Ollama via the Agent SDK", model, timeout_s, env)
+        self.base_url = base_url
+
+    async def check(self) -> None:
+        """Ollama down or the model missing would surface as a vague CLI error; name the fix instead."""
+        ok, reason = await ollama_status(self.base_url, self.model, create_fix(self.model))
+        if not ok:
+            raise AppError("provider_unavailable", reason or "Ollama is not available.")

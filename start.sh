@@ -30,6 +30,8 @@ step "Pulling models (skipped if already present)"
 for model in "$CHAT_MODEL" "$EMBED_MODEL"; do
   ollama list | grep -q "^${model}" || ollama pull "$model"
 done
+ollama create lenny-qwen3-4b -f ollama/Modelfile >/dev/null || fail "Could not create the local chat model (ollama create lenny-qwen3-4b -f ollama/Modelfile)."
+echo "Local chat model lenny-qwen3-4b is ready (8192 context, for the Agent SDK path)."
 
 step "Building and starting the app (first run takes a few minutes)"
 docker compose up -d --build

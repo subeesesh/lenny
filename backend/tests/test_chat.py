@@ -8,6 +8,7 @@ from pydantic import SecretStr
 
 from app.agent.router import route
 from app.config import get_settings
+from app.llm.providers import default_model
 from app.retrieval.search import Retrieval
 from tests.fakes import FakeProvider, FakeRetriever, ask, new_session, timeout, unavailable, use
 
@@ -146,13 +147,16 @@ def test_provider_failure_streams_error_and_stores_error_status(client: TestClie
 
 
 def test_config_get_and_put(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    async def ollama_ok(base_url: str, model: str) -> tuple[bool, None]:
+    async def ollama_ok(base_url: str, model: str, missing: str | None = None) -> tuple[bool, None]:
         return True, None
 
     monkeypatch.setattr("app.llm.providers.ollama_status", ollama_ok)
     monkeypatch.setattr(get_settings(), "anthropic_api_key", SecretStr(""))
     config = client.get("/api/v1/config").json()
-    assert config["active"] == {"provider": "ollama", "model": get_settings().ollama_model}
+    settings = get_settings()
+    assert config["active"] == {"provider": settings.llm_provider, "model": default_model(settings, settings.llm_provider)}
+    sdk = next(p for p in config["providers"] if p["name"] == "ollama-sdk")
+    assert sdk["model"] == settings.ollama_sdk_model
     cloud = next(p for p in config["providers"] if p["name"] == "anthropic")
     assert cloud["available"] is False and "ANTHROPIC_API_KEY" in cloud["reason"]
 
@@ -160,7 +164,7 @@ def test_config_get_and_put(client: TestClient, monkeypatch: pytest.MonkeyPatch)
     assert res.status_code == 400 and res.json()["error"]["code"] == "provider_not_configured"
 
     res = client.put("/api/v1/config", json={"provider": "ollama-sdk"})
-    assert res.json()["active"] == {"provider": "ollama-sdk", "model": get_settings().ollama_model}
+    assert res.json()["active"] == {"provider": "ollama-sdk", "model": settings.ollama_sdk_model}
     assert [p["name"] for p in config["providers"]] == ["ollama", "ollama-sdk", "anthropic"]
     res = client.put("/api/v1/config", json={"provider": "ollama", "model": "qwen3:1.7b"})
     assert res.json()["active"] == {"provider": "ollama", "model": "qwen3:1.7b"}

@@ -88,7 +88,7 @@
 
 **F4: Artifact.** "Make an HTML one-pager" / "Make a markdown doc" → sanitized artifact opens beside the chat; Preview / Source / Copy.
 
-**F5: Switch model.** Header badge → choose Local (Ollama direct), Local · Agent SDK (Ollama through the Claude Agent SDK) or Cloud (Anthropic) → next message uses it. Unavailable providers are greyed out with the reason.
+**F5: Switch model.** Header badge → choose Local · Agent SDK (default: Ollama through the Claude Agent SDK), Local (Ollama direct) or Cloud (Anthropic) → next message uses it. Unavailable providers are greyed out with the reason.
 
 **F6: Resume.** Sidebar lists sessions (title = first question, truncated); clicking one reloads messages, citations, artifacts.
 

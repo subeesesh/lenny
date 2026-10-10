@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from app.config import Settings
 from app.llm.anthropic import NO_KEY_MESSAGE, AnthropicProvider, OllamaSdkProvider
 from app.llm.base import Provider
-from app.llm.ollama import OllamaProvider, ollama_status
+from app.llm.ollama import OllamaProvider, create_fix, ollama_status
 
 
 @dataclass
@@ -13,7 +13,7 @@ class Active:
 
 
 def default_model(settings: Settings, provider: str) -> str:
-    return settings.anthropic_model if provider == "anthropic" else settings.ollama_model
+    return {"anthropic": settings.anthropic_model, "ollama-sdk": settings.ollama_sdk_model}.get(provider, settings.ollama_model)
 
 
 def make_provider(settings: Settings, active: Active) -> Provider:
@@ -29,15 +29,18 @@ def make_provider(settings: Settings, active: Active) -> Provider:
 
 async def provider_statuses(settings: Settings) -> list[dict[str, object]]:
     ollama_ok, ollama_reason = await ollama_status(settings.ollama_base_url, settings.ollama_model)
+    sdk_ok, sdk_reason = await ollama_status(
+        settings.ollama_base_url, settings.ollama_sdk_model, create_fix(settings.ollama_sdk_model)
+    )
     has_key = bool(settings.anthropic_api_key.get_secret_value())
     return [
         {"name": "ollama", "label": "Local", "model": settings.ollama_model, "available": ollama_ok, "reason": ollama_reason},
         {
             "name": "ollama-sdk",
             "label": "Local · Agent SDK",
-            "model": settings.ollama_model,
-            "available": ollama_ok,
-            "reason": ollama_reason,
+            "model": settings.ollama_sdk_model,
+            "available": sdk_ok,
+            "reason": sdk_reason,
         },
         {
             "name": "anthropic",

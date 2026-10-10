@@ -1,8 +1,8 @@
 # Lenny Growth Assistant
 
-A chat assistant that answers questions about **Lenny's Podcast** strictly from the episode transcripts, with clickable sources, and turns what the guests said into a **Ship 30 for 30 essay** or an **HTML one-pager**. It runs fully local on Ollama by default, either calling Ollama directly or through the **Claude Agent SDK** (pointed at Ollama's Anthropic-compatible API); Anthropic Claude is an optional cloud provider. You switch between the three with one click, never automatically.
+A chat assistant that answers questions about **Lenny's Podcast** strictly from the episode transcripts, with clickable sources, and turns what the guests said into a **Ship 30 for 30 essay** or an **HTML one-pager**. It runs fully local on Ollama by default, through the **Claude Agent SDK** pointed at Ollama's Anthropic-compatible API (or calling Ollama directly); Anthropic Claude is an optional cloud provider on the same SDK adapter. You switch between the three with one click, never automatically.
 
-- **Ask:** answers stream with `[n]` citations and source chips that link to the YouTube timestamp. Questions the transcripts don't cover get "The transcripts don't cover this."
+- **Ask:** answers stream with `[n]` citations and sources that link to the YouTube timestamp. Questions the transcripts don't cover get "The transcripts don't cover this." Follow-ups ("give me an example of that") keep the topic; a new question in the same chat starts fresh. You can also ask it to apply the advice ("turn the second recommendation into a seven-day experiment"): the plan is built from cited passages and labeled as an application, not something said on the podcast.
 - **Write a Ship 30 essay:** a ~1,250-word atomic essay grounded in 10 passages, with a sources list, opened in a side viewer.
 - **Make a one-pager:** a styled HTML (or Markdown) document, sanitized on the server and rendered in a sandboxed iframe.
 - Sessions, messages, citations and documents are stored in PostgreSQL and survive restarts.
@@ -40,7 +40,7 @@ With Docker and Ollama installed and running:
 - **Windows:** double-click `start.bat`
 - **macOS / Linux:** `./start.sh`
 
-The script checks Docker and Ollama, creates `.env` (moving the database to port 5433 if 5432 is taken), pulls the two models, builds and starts the app, loads the transcripts (about 10 minutes the first time; it retries once if Ollama was busy) and opens http://localhost:8000. It is safe to re-run; a second run takes about 20 seconds. It does not change any Ollama settings; for faster answers on small GPUs see [Performance](#performance-on-small-gpus).
+The script checks Docker and Ollama, creates `.env` (moving the database to port 5433 if 5432 is taken), pulls the two models, creates the local chat model `lenny-qwen3-4b` from `ollama/Modelfile`, builds and starts the app, loads the transcripts (about 10 minutes the first time; it retries once if Ollama was busy) and opens http://localhost:8000. It is safe to re-run; a second run takes about 20 seconds. It does not change any Ollama settings; for faster answers on small GPUs see [Performance](#performance-on-small-gpus).
 
 The manual steps below do the same thing.
 
@@ -53,6 +53,7 @@ cp .env.example .env                      # Windows PowerShell: Copy-Item .env.e
 
 ollama pull qwen3:4b-instruct-2507-q4_K_M
 ollama pull nomic-embed-text
+ollama create lenny-qwen3-4b -f ollama/Modelfile   # the same model with 8192 context built in, for the Agent SDK path
 
 make up                                   # or: docker compose up -d --build
 make ingest                               # or: docker compose exec api python -m app.ingest
@@ -75,7 +76,7 @@ Then open **http://localhost:8000**, enter a display name, and ask a question.
 
 ## Local through the Claude Agent SDK
 
-Pick **Local · Agent SDK** in the provider menu to run the same answers through the Claude Agent SDK (`query()`, built-in tools disabled), pointed at Ollama's Anthropic-compatible API instead of Anthropic. It needs Ollama started with `OLLAMA_CONTEXT_LENGTH=8192` (see [Performance](#performance-on-small-gpus)). It is about twice as slow as the direct path on a 4 GB GPU (Q&A ~16 s, one-pager ~78 s), so direct stays the default. Details: [architecture §6.3](docs/architecture.md#63-claude-agent-sdk).
+**Local · Agent SDK** is the default: answers go through the Claude Agent SDK (`query()`, built-in tools disabled), pointed at Ollama's Anthropic-compatible API instead of Anthropic, so local and cloud share one adapter. The SDK can't pass Ollama options, so it uses `lenny-qwen3-4b`, the same model with an 8,192-token context built in by `ollama/Modelfile` (the start scripts create it; works on a stock Ollama). Once warm it is about as fast as the direct path (first token ~3.3 s vs ~2.5 s, full answer ~9.7 s vs ~9.3 s on a 4 GB GPU). **Local** (direct `/api/chat`) is still in the menu: it starts slightly faster, can set the GPU split (`OLLAMA_NUM_GPU`) and keeps the model loaded for 30 minutes, while through the SDK Ollama unloads it after 5 idle minutes. Details: [architecture §6.3](docs/architecture.md#63-claude-agent-sdk).
 
 ## Switching to Anthropic (cloud)
 
@@ -89,7 +90,8 @@ Without a key, Cloud is shown disabled with the reason. The app never switches p
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `LLM_PROVIDER` | `ollama` | Provider at startup: `ollama` (direct), `ollama-sdk` (through the Claude Agent SDK) or `anthropic` |
+| `LLM_PROVIDER` | `ollama-sdk` | Provider at startup: `ollama-sdk` (Ollama through the Claude Agent SDK), `ollama` (direct) or `anthropic` |
+| `OLLAMA_SDK_MODEL` | `lenny-qwen3-4b` | Chat model for the Agent SDK path: the instruct model with 8192 context built in (`ollama/Modelfile`) |
 | `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | Ollama as seen from the container |
 | `OLLAMA_MODEL` | `qwen3:4b-instruct-2507-q4_K_M` | Chat model. Use this instruct build: the plain `qwen3:4b` tag is a thinking-only model that ignores `think: false` |
 | `OLLAMA_NUM_CTX` | `8192` | Context window |
@@ -112,14 +114,13 @@ Measured on a laptop with a 4 GB RTX 3050 and 16 GB RAM (details: [architecture 
 1. Ollama server environment (Windows: user environment variables, then quit and restart Ollama from the tray):
    - `OLLAMA_KV_CACHE_TYPE=q8_0` (8-bit KV cache, halves its memory)
    - `OLLAMA_MAX_LOADED_MODELS=2` (keep the embedder and the chat model loaded together)
-   - `OLLAMA_CONTEXT_LENGTH=8192` (needed for **Local · Agent SDK**, which can't pass Ollama options; also keeps both local paths on the same context so switching doesn't reload the model)
-2. In `.env`: `OLLAMA_NUM_GPU=32`, then `docker compose up -d`.
+2. In `.env`: `OLLAMA_NUM_GPU=32`, then `docker compose up -d`. This applies to the direct path (**Local**); the Agent SDK path can't pass it and uses Ollama's own GPU split.
 
 Result: first token ~1.9 s (p50 over the eval set), a full answer ~8 s, a one-pager ~1 min, an essay ~3 min. On a bigger GPU, leave `OLLAMA_NUM_GPU` empty.
 
 ## Tests and eval
 
-- `make test`: 119 pytest tests run inside the `api` container against a separate `lenny_test` database built from fixture transcripts; the LLM and embeddings are mocked, so no model is needed. They cover the error shape, `/health` and `/ready`, each ingestion rule, retrieval and both guards, the providers (Ollama down, model missing, timeout + one retry, no key), the router, SSE order, session isolation, the XSS payload list and the essay retry. List per file: [architecture §11](docs/architecture.md#11-tests-pytest-llm-and-embeddings-mocked).
+- `make test`: 133 pytest tests run inside the `api` container against a separate `lenny_test` database built from fixture transcripts; the LLM and embeddings are mocked, so no model is needed. They cover the error shape, `/health` and `/ready`, each ingestion rule, retrieval and both guards, the providers (Ollama down, model missing, timeout + one retry, no key), the router, follow-up detection, SSE order, session isolation, chat delete, the XSS payload list, the one-pager structure and the essay retry. List per file: [architecture §11](docs/architecture.md#11-tests-pytest-llm-and-embeddings-mocked).
 - `make eval`: runs the 40 questions in `eval/eval_set.json` (30 grounded, 10 out of scope) plus 10 essays through the running app and writes `eval/results.md`. Add `--essays 0` to skip the essays (~6 min instead of ~35 min locally).
 
 Latest local results ([eval/results.md](eval/results.md)):
@@ -139,11 +140,12 @@ The results also include a threshold sweep, the tuning history and an accuracy a
 |---|---|
 | "Ollama is not reachable … Run `ollama serve`" | Start Ollama (tray app or `ollama serve`), then click **Retry**. Check `curl http://localhost:11434/api/tags`. |
 | "The model … is not pulled. Run `ollama pull …`" | Run the command shown; `/config` and the provider menu show the same reason. |
+| "The model lenny-qwen3-4b is not created" | Run `ollama create lenny-qwen3-4b -f ollama/Modelfile` (the start scripts do this), or switch to **Local** in the provider menu. |
 | Cloud is disabled in the provider menu | Add `ANTHROPIC_API_KEY` to `.env` and run `docker compose up -d`. |
 | `make up` fails with "ports are not available … 5432" | Another PostgreSQL uses 5432: set `DB_HOST_PORT=5433` in `.env`. |
 | `/ready` returns 503 or requests fail with `db_unavailable` | `docker compose ps` and `docker compose logs db`; `docker compose up -d` starts it again (the API waits for the DB healthcheck). |
 | Every question gets "The transcripts don't cover this." | `make ingest` hasn't run or failed: check `chunks` in `/ready` (should be 16,461). |
-| Slow first answer | The first question loads the models (~5–10 s). Ollama unloads idle models after a while; the app asks it to keep them for 30 min. On small GPUs apply [Performance](#performance-on-small-gpus). |
+| Slow first answer | The first question loads the models (~5–10 s). Ollama unloads idle models after a while; the direct path asks it to keep them for 30 min, while through **Local · Agent SDK** Ollama's default of 5 minutes applies. On small GPUs apply [Performance](#performance-on-small-gpus). |
 | "out of memory" / `cudaMalloc failed` / `llama-server … terminated` in an error card | The model didn't fit when loading. Close GPU-heavy apps or restart Ollama, then Retry. On a 4 GB GPU use the [Performance](#performance-on-small-gpus) settings. On Windows with 16 GB RAM, Docker's WSL VM can hold several GB: cap it in `%USERPROFILE%\.wslconfig` with `[wsl2]` / `memory=3GB`, then `wsl --shutdown` and restart Docker Desktop. When restarting Ollama on Windows also end any leftover `llama-server.exe`. |
 | `make: command not found` (Windows) | Use the plain commands in the table above. |
 | Scripts against `http://localhost:8000` are slow on Windows | Python resolves `localhost` to IPv6 first and waits ~2 s per request; use `http://127.0.0.1:8000` (the eval script already does). Browsers are not affected. |
@@ -170,6 +172,7 @@ backend/tests/                                               pytest (fixtures in
 backend/schema.sql                                           applied on startup
 web/                                                         Vite + React + TypeScript UI
 eval/                                                        eval_set.json, run_eval.py, results.md
+ollama/Modelfile                                             local chat model for the Agent SDK path (8192 context)
 docs/                                                        PRD, architecture, design, test plan, agent transcripts
 spike/                                                       Day-1 Claude Agent SDK + Ollama spike
 ```

@@ -10,7 +10,7 @@ from app.errors import AppError
 from app.llm.anthropic import AnthropicProvider, OllamaSdkProvider, render_prompt
 from app.llm.base import Provider, ProviderTimeout, stream_with_retry
 from app.llm.ollama import OllamaProvider
-from app.llm.providers import Active, make_provider
+from app.llm.providers import Active, default_model, make_provider
 from tests.fakes import FakeProvider, timeout
 
 MESSAGES = [{"role": "user", "content": "hi"}]
@@ -118,3 +118,26 @@ def test_make_provider_routes_each_name() -> None:
     assert isinstance(make_provider(settings, Active("ollama", "m")), OllamaProvider)
     assert isinstance(make_provider(settings, Active("ollama-sdk", "m")), OllamaSdkProvider)
     assert isinstance(make_provider(settings, Active("anthropic", "c")), AnthropicProvider)
+
+
+async def test_ollama_sdk_names_the_fix_before_starting_the_cli(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def missing(base_url: str, model: str, fix: str | None = None) -> tuple[bool, str | None]:
+        return False, fix
+
+    def no_cli(**kwargs: object) -> None:
+        raise AssertionError("the CLI must not start when Ollama is not ready")
+
+    monkeypatch.setattr("app.llm.anthropic.ollama_status", missing)
+    monkeypatch.setattr("app.llm.anthropic.query", no_cli)
+    provider = OllamaSdkProvider("http://ollama", "lenny-qwen3-4b", 120)
+    with pytest.raises(AppError) as err:
+        await collect(provider)
+    assert err.value.code == "provider_unavailable"
+    assert "ollama create lenny-qwen3-4b -f ollama/Modelfile" in err.value.message
+
+
+def test_default_model_per_provider() -> None:
+    settings = Settings()
+    assert default_model(settings, "ollama-sdk") == settings.ollama_sdk_model == "lenny-qwen3-4b"
+    assert default_model(settings, "ollama") == settings.ollama_model
+    assert default_model(settings, "anthropic") == settings.anthropic_model

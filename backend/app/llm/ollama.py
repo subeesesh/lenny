@@ -73,7 +73,15 @@ class OllamaProvider:
             raise ProviderTimeout() from exc
 
 
-async def ollama_status(base_url: str, model: str) -> tuple[bool, str | None]:
+def pull_fix(model: str) -> str:
+    return f"The model {model} is not pulled. Run `ollama pull {model}`."
+
+
+def create_fix(model: str) -> str:
+    return f"The model {model} is not created. Run `ollama create {model} -f ollama/Modelfile` (start.bat / start.sh do this)."
+
+
+async def ollama_status(base_url: str, model: str, missing: str | None = None) -> tuple[bool, str | None]:
     try:
         async with httpx.AsyncClient(base_url=base_url, timeout=2) as client:
             res = await client.get("/api/tags")
@@ -81,5 +89,5 @@ async def ollama_status(base_url: str, model: str) -> tuple[bool, str | None]:
         return False, f"Ollama is not reachable at {base_url}. Start it with `ollama serve`."
     names = {m["name"] for m in res.json().get("models", [])}
     if model not in names and f"{model}:latest" not in names:
-        return False, f"The model {model} is not pulled. Run `ollama pull {model}`."
+        return False, missing or pull_fix(model)
     return True, None

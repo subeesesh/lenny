@@ -1,0 +1,4 @@
+# Chat model for the Agent SDK path: the SDK cannot pass Ollama options, so the context size is built in here.
+# Created by start.bat / start.sh, or: ollama create lenny-qwen3-4b -f ollama/Modelfile
+FROM qwen3:4b-instruct-2507-q4_K_M
+PARAMETER num_ctx 8192
