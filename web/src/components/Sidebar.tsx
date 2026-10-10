@@ -1,4 +1,5 @@
 import type { SessionSummary } from "../api";
+import { PlusIcon, TrashIcon } from "./icons";
 
 type Props = {
   sessions: SessionSummary[] | null;
@@ -11,6 +12,21 @@ type Props = {
 };
 
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+const KINDS: [RegExp, string][] = [
+  [/^\s*write (?:a )?ship ?30 essay (?:on|about) (.+)$/i, "Essay"],
+  [/^\s*make (?:a |an )?(?:html )?one-pager (?:on|about) (.+)$/i, "One-pager"],
+  [/^\s*make (?:a |an )?markdown doc(?:ument)? (?:on|about) (.+)$/i, "Doc"],
+];
+
+/** Chat titles come from the first message; show the topic and a small tag instead of the request phrasing. */
+export function displayTitle(title: string): { text: string; kind: string | null } {
+  for (const [pattern, kind] of KINDS) {
+    const match = title.match(pattern);
+    if (match) return { text: match[1], kind };
+  }
+  return { text: title, kind: null };
+}
 
 function ago(iso: string): string {
   const seconds = (new Date(iso).getTime() - Date.now()) / 1000;
@@ -30,8 +46,8 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete
         </span>
         <span className="brand-name">Lenny Growth Assistant</span>
       </div>
-      <button type="button" className="primary new-chat" onClick={onNew}>
-        <span aria-hidden="true">＋</span> New chat
+      <button type="button" className="new-chat" onClick={onNew}>
+        <PlusIcon /> New chat
       </button>
       <h2 className="sidebar-label">Chats</h2>
       {failed ? (
@@ -51,7 +67,9 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete
         <p className="sidebar-note">No chats yet</p>
       ) : (
         <ul className="session-list">
-          {sessions.map((s) => (
+          {sessions.map((s) => {
+            const { text, kind } = displayTitle(s.title);
+            return (
             <li key={s.id} className="session-row">
               <button
                 type="button"
@@ -59,8 +77,11 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete
                 aria-current={s.id === currentId ? "true" : undefined}
                 onClick={() => onSelect(s.id)}
               >
-                <span className="session-title">{s.title}</span>
-                <span className="muted session-time">{ago(s.updated_at)}</span>
+                <span className="session-title">{text}</span>
+                <span className="session-meta">
+                  {kind && <span className="tag">{kind}</span>}
+                  <span className="session-time">{ago(s.updated_at)}</span>
+                </span>
               </button>
               <button
                 type="button"
@@ -69,10 +90,11 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete
                 title="Delete chat"
                 onClick={() => onDelete(s)}
               >
-                🗑
+                <TrashIcon />
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </nav>

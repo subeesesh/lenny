@@ -43,7 +43,7 @@ Chat text max width ~72 characters; composer stays at the bottom.
 | Citation chip | `[1] Guest — Episode` link to YouTube at the timestamp (plain text if no URL); inline `[n]` in the answer match chip numbers |
 | Artifact card | In-chat card with title, type and Open button |
 | Status line | "Searching transcripts…" → "Writing…" |
-| Empty state | One line on what the assistant does + 3 example questions |
+| Empty state | One line on what the assistant does + 3 example questions, drawn from a pool of 26 that were each checked to get a sourced answer (`web/src/suggestions.ts`); the browser remembers which were shown, so new chats and reloads show new ones until the pool is used up |
 | Not-covered answer | Neutral callout: "The transcripts don't cover this." Guard refusals (personal data, "X was not a guest") use the same callout |
 | Quick actions | "Write a Ship 30 essay" / "Make a one-pager" use the text in the composer as the topic (sent as "Write a Ship 30 essay on <topic>" with the matching `route_hint`); disabled until a topic is typed |
 
@@ -71,7 +71,7 @@ Chat text max width ~72 characters; composer stays at the bottom.
 - Trade-off: links inside artifacts don't open (sandbox blocks navigation). Acceptable for documents; sources are also clickable as chips in the chat.
 
 ## 7. Visual style
-- Calm, content-first, warm: a cream page with floating rounded panels (sidebar, chat, artifact pane), white cards, and one amber accent used for the active chat, primary buttons, the user's message bubbles and the send button. Answers sit in white cards with a Copy action; the composer is a dark pill with a round send button and the two quick actions as chips above it. The empty state is a welcome card with three tiles (Ask, Ship 30 essay, One-pager) that prefill the composer, plus the example questions. Light and dark (a matching warm dark palette) via CSS variables following `prefers-color-scheme`. Text on the amber accent is dark for contrast.
+- Calm, content-first, restrained: neutral warm surfaces, flat panels separated by hairline dividers (no floating cards or heavy shadows), and one amber accent used sparingly (send button, links, focus, the active chat's marker, small type tags). Icons are a small set of inline SVG line icons, never emoji. Answers are plain text on the page; the user's message is a subtle neutral bubble. Sources are one compact row per episode with its timestamps as small links (the inline `[n]` still links to the exact moment). Chat titles show the topic with an "Essay" / "One-pager" tag instead of the request phrasing. The empty state is a short welcome with three tiles (Ask, Ship 30 essay, One-pager) that prefill the composer, plus the example questions. Light and dark via CSS variables following `prefers-color-scheme`; thin scrollbars.
 - System sans for UI; serif for artifact bodies.
 - Neutral surfaces, one accent colour; status always uses icon + text, never colour alone.
 - 4 px spacing scale; line height 1.6 in messages. Motion limited to short fades, off under `prefers-reduced-motion`.

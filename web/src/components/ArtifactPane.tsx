@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Artifact } from "../api";
 import { artifactDocument } from "../render";
+import { BackIcon, CheckIcon, CloseIcon, CopyIcon, LockIcon } from "./icons";
 
 type Props = { artifact: Artifact | null; loadingTitle: string | null; error: string | null; onClose: () => void };
 
@@ -20,7 +21,7 @@ export function ArtifactPane({ artifact, loadingTitle, error, onClose }: Props) 
     <aside className="artifact-pane" aria-label={`Document: ${title}`}>
       <header className="pane-header">
         <button type="button" className="quiet back" onClick={onClose}>
-          ← Back
+          <BackIcon /> Back
         </button>
         <div className="pane-title">
           <h2>{title}</h2>
@@ -36,10 +37,10 @@ export function ArtifactPane({ artifact, loadingTitle, error, onClose }: Props) 
             </button>
           </div>
           <button type="button" onClick={copy} disabled={!artifact}>
-            {copied ? "Copied" : "Copy"}
+            {copied ? <CheckIcon /> : <CopyIcon />} {copied ? "Copied" : "Copy"}
           </button>
           <button type="button" className="quiet close" aria-label="Close document" onClick={onClose}>
-            ✕
+            <CloseIcon size={18} />
           </button>
         </div>
       </header>
@@ -57,7 +58,7 @@ export function ArtifactPane({ artifact, loadingTitle, error, onClose }: Props) 
         <pre className="artifact-source">{artifact.content}</pre>
       )}
       <p className="sandbox-note muted small">
-        <span aria-hidden="true">🔒</span> Sandboxed: scripts, forms, links and external content are blocked.
+        <LockIcon size={14} /> Sandboxed: scripts, forms, links and external content are blocked.
       </p>
     </aside>
   );

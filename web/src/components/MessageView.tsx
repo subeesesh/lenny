@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ArtifactRef, Citation, ErrorBody } from "../api";
 import { renderAnswer } from "../render";
+import { AlertIcon, CheckIcon, CopyIcon, InfoIcon, PageIcon, PenIcon, PlayIcon } from "./icons";
 
 export type UiMessage = {
   key: string;
@@ -55,27 +56,66 @@ function errorText(error: ErrorBody | null | undefined): string {
   return error.message;
 }
 
-function Chips({ citations }: { citations: Citation[] }) {
+type SourceGroup = { key: string; guest: string; title: string; items: { n: number; c: Citation }[] };
+
+/** One row per episode: the same episode often supplies several passages, shown as timestamp links. */
+function groupSources(citations: Citation[]): SourceGroup[] {
+  const groups = new Map<string, SourceGroup>();
+  citations.forEach((c, i) => {
+    const key = c.slug ?? c.title;
+    const group = groups.get(key) ?? { key, guest: guestName(c.guest), title: c.title.split(" | ")[0], items: [] };
+    group.items.push({ n: i + 1, c });
+    groups.set(key, group);
+  });
+  return [...groups.values()];
+}
+
+/** "00:01:14" -> "1:14", "01:15:30" -> "1:15:30", like YouTube. */
+function shortTs(ts: string | null): string {
+  if (!ts) return "";
+  const [h, m, s] = ts.split(":").map(Number);
+  const mm = h ? String(m).padStart(2, "0") : String(m);
+  return `${h ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
+}
+
+/** Repeat guests are numbered in the dataset ("Elena Verna 4.0"); the episode title already tells them apart. */
+const guestName = (guest: string | null) => (guest ?? "Unknown guest").replace(/\s+\d+\.0$/, "");
+
+function Sources({ citations }: { citations: Citation[] }) {
   return (
-    <ol className="chips" aria-label="Sources">
-      {citations.map((c, i) => {
-        const text = `[${i + 1}] ${c.guest ?? "Unknown guest"} — ${c.title}`;
-        const label = `Source ${i + 1}: ${c.guest ?? "Unknown guest"}, ${c.title}`;
-        return (
-          <li key={c.chunk_id}>
-            {c.url ? (
-              <a className="chip" href={c.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={text}>
-                {text}
-              </a>
-            ) : (
-              <span className="chip" aria-label={label} title={text}>
-                {text}
-              </span>
-            )}
+    <section className="sources" aria-label="Sources">
+      <h3 className="sources-label">Sources</h3>
+      <ol className="source-list">
+        {groupSources(citations).map((g) => (
+          <li key={g.key} className="source">
+            <span className="source-title" title={`${g.guest} — ${g.title}`}>
+              <strong>{g.guest}</strong> <span className="muted">{g.title}</span>
+            </span>
+            <span className="source-links">
+              {g.items.map(({ n, c }) => {
+                const label = `Source ${n}: ${g.guest}, ${g.title}${c.ts ? ` at ${shortTs(c.ts)}` : ""}`;
+                const text = (
+                  <>
+                    <span className="source-n">{n}</span>
+                    {c.ts ? shortTs(c.ts) : "link"}
+                  </>
+                );
+                return c.url ? (
+                  <a key={n} className="source-link" href={c.url} target="_blank" rel="noopener noreferrer" aria-label={label}>
+                    <PlayIcon size={11} />
+                    {text}
+                  </a>
+                ) : (
+                  <span key={n} className="source-link" aria-label={label}>
+                    {text}
+                  </span>
+                );
+              })}
+            </span>
           </li>
-        );
-      })}
-    </ol>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -87,8 +127,8 @@ function CopyAnswer({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 1500);
   }
   return (
-    <button type="button" className="icon-button" onClick={copy} aria-label="Copy answer">
-      <span aria-hidden="true">⧉</span> {copied ? "Copied" : "Copy"}
+    <button type="button" className="ghost-button" onClick={copy} aria-label="Copy answer">
+      {copied ? <CheckIcon /> : <CopyIcon />} {copied ? "Copied" : "Copy"}
     </button>
   );
 }
@@ -107,7 +147,7 @@ export function MessageView({ message: m, cloudAvailable, onOpenArtifact, onRetr
       )}
       {isRefusal(m) ? (
         <div className="callout" role="note">
-          <span aria-hidden="true">ⓘ</span> {m.content}
+          <InfoIcon /> <span>{m.content}</span>
         </div>
       ) : (
         m.content && <div className="answer" dangerouslySetInnerHTML={{ __html: renderAnswer(m.content, m.citations) }} />
@@ -115,7 +155,7 @@ export function MessageView({ message: m, cloudAvailable, onOpenArtifact, onRetr
       {m.status === "error" && (
         <div className="error-card" role="alert">
           <strong>
-            <span aria-hidden="true">⚠</span> Something went wrong
+            <AlertIcon /> Something went wrong
           </strong>
           <ErrorText text={errorText(m.error)} />
           {canRetry && (
@@ -134,16 +174,17 @@ export function MessageView({ message: m, cloudAvailable, onOpenArtifact, onRetr
       )}
       {m.artifact && (
         <div className="artifact-card">
-          <div>
+          <span className="artifact-icon">{m.route === "essay" ? <PenIcon size={18} /> : <PageIcon size={18} />}</span>
+          <div className="artifact-meta">
             <strong>{m.artifact.title}</strong>
-            <span className="muted"> · {m.artifact.type === "html" ? "HTML" : "Markdown"}</span>
+            <span className="muted small">{m.route === "essay" ? "Ship 30 essay" : m.artifact.type === "html" ? "One-pager · HTML" : "Document · Markdown"}</span>
           </div>
           <button type="button" onClick={() => onOpenArtifact(m.artifact!)}>
             Open
           </button>
         </div>
       )}
-      {m.citations.length > 0 && <Chips citations={m.citations} />}
+      {m.citations.length > 0 && <Sources citations={m.citations} />}
       {m.status === "complete" && m.content && !isRefusal(m) && (
         <div className="msg-actions">
           <CopyAnswer text={m.content} />

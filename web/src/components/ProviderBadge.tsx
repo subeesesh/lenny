@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Config } from "../api";
+import { ChevronDownIcon, CloudIcon, LaptopIcon } from "./icons";
 
 type Props = { config: Config | null; disabled: boolean; onSelect: (provider: string) => void };
 
@@ -24,7 +25,7 @@ export function ProviderBadge({ config, disabled, onSelect }: Props) {
 
   if (!config) return <span className="badge muted">Loading…</span>;
   const active = config.providers.find((p) => p.name === config.active.provider);
-  const icon = config.active.provider === "ollama" ? "🖥" : "☁";
+  const icon = config.active.provider === "ollama" ? <LaptopIcon /> : <CloudIcon />;
   const label = `${active?.label ?? config.active.provider} · ${shortModel(config.active.model)}`;
 
   return (
@@ -38,7 +39,7 @@ export function ProviderBadge({ config, disabled, onSelect }: Props) {
         disabled={disabled}
         onClick={() => setOpen(!open)}
       >
-        <span aria-hidden="true">{icon}</span> {label} <span aria-hidden="true">▾</span>
+        {icon} {label} <ChevronDownIcon size={14} />
       </button>
       {open && (
         <ul className="menu" role="menu">

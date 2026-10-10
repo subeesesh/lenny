@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowUpIcon, PageIcon, PenIcon } from "./icons";
 
 export type Prefill = { text: string; nonce: number };
 
@@ -58,10 +59,10 @@ export function Composer({ disabled, prefill, onSend }: Props) {
       <div className="composer-chips">
         <span className="muted small">Turn a topic into:</span>
         <button type="button" className="chip-action" disabled={disabled || !topic} onClick={() => send(withAction("Write a Ship 30 essay", topic), "essay")}>
-          <span aria-hidden="true">✍️</span> Write a Ship 30 essay
+          <PenIcon size={15} /> Write a Ship 30 essay
         </button>
         <button type="button" className="chip-action" disabled={disabled || !topic} onClick={() => send(withAction("Make a one-pager", topic), "artifact")}>
-          <span aria-hidden="true">📄</span> Make a one-pager
+          <PageIcon size={15} /> Make a one-pager
         </button>
       </div>
       <div className="composer-pill">
@@ -80,7 +81,7 @@ export function Composer({ disabled, prefill, onSend }: Props) {
           onKeyDown={onKeyDown}
         />
         <button type="submit" className="send" aria-label="Send" disabled={disabled || !topic}>
-          <span aria-hidden="true">➤</span>
+          <ArrowUpIcon size={18} />
         </button>
       </div>
     </form>

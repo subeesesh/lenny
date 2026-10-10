@@ -5,20 +5,17 @@ import { Composer, type Prefill } from "./components/Composer";
 import { MessageView, type UiMessage } from "./components/MessageView";
 import { NameDialog } from "./components/NameDialog";
 import { ProviderBadge } from "./components/ProviderBadge";
-import { Sidebar } from "./components/Sidebar";
+import { AlertIcon, ChatIcon, MenuIcon, PageIcon, PenIcon } from "./components/icons";
+import { Sidebar, displayTitle } from "./components/Sidebar";
+import { pickSuggestions } from "./suggestions";
 import { SidebarResizer, readSidebarWidth } from "./components/SidebarResizer";
 
 const NAME_KEY = "lga.displayName";
-const EXAMPLES = [
-  "How do the guests think about finding product-market fit?",
-  "What does Elena Verna say about growth loops?",
-  "How should a new PM spend their first 90 days?",
-];
 
 const TILES = [
-  { icon: "💬", title: "Ask a question", text: "A cited answer from ~290 episodes.", prefill: "" },
-  { icon: "✍️", title: "Write a Ship 30 essay", text: "A grounded essay with a sources list.", prefill: "Write a Ship 30 essay on " },
-  { icon: "📄", title: "Make a one-pager", text: "A shareable page you can copy.", prefill: "Make a one-pager on " },
+  { icon: <ChatIcon size={20} />, title: "Ask a question", text: "A cited answer from ~290 episodes.", prefill: "" },
+  { icon: <PenIcon size={20} />, title: "Write a Ship 30 essay", text: "A grounded essay with a sources list.", prefill: "Write a Ship 30 essay on " },
+  { icon: <PageIcon size={20} />, title: "Make a one-pager", text: "A shareable page you can copy.", prefill: "Make a one-pager on " },
 ];
 
 const readName = () => {
@@ -58,6 +55,7 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth);
   const [prefill, setPrefill] = useState<Prefill | null>(null);
+  const [suggestions, setSuggestions] = useState(() => pickSuggestions());
   const [pane, setPane] = useState<{ ref: ArtifactRef; artifact: Artifact | null; error: string | null } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -123,6 +121,7 @@ export default function App() {
   );
 
   function newChat() {
+    setSuggestions(pickSuggestions());
     setSessionId(null);
     setTitle("New chat");
     setMessages([]);
@@ -249,7 +248,7 @@ export default function App() {
     >
       {serverDown && (
         <div className="banner" role="alert">
-          <span aria-hidden="true">⚠</span> Can't reach the server.
+          <AlertIcon /> Can't reach the server.
           <button type="button" onClick={reconnect}>
             Retry
           </button>
@@ -269,9 +268,9 @@ export default function App() {
       <main className="chat">
         <header className="chat-header">
           <button type="button" className="quiet menu-button" aria-label="Open chats" onClick={() => setDrawerOpen(true)}>
-            ☰
+            <MenuIcon size={20} />
           </button>
-          <h1 className="chat-title">{title}</h1>
+          <h1 className="chat-title">{displayTitle(title).text}</h1>
           <ProviderBadge config={config} disabled={busy} onSelect={switchProvider} />
         </header>
         <div className="messages">
@@ -297,7 +296,7 @@ export default function App() {
               </div>
               <p className="muted small examples-label">Or try one of these:</p>
               <ul className="examples">
-                {EXAMPLES.map((q) => (
+                {suggestions.map((q) => (
                   <li key={q}>
                     <button type="button" className="example" disabled={busy} onClick={() => send(q, null)}>
                       {q}
