@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -59,6 +59,14 @@ async def get_session(session_id: UUID, request: Request) -> dict[str, Any]:
         "messages": await repo.list_messages(pool, session_id),
         "artifacts": await repo.list_artifacts(pool, session_id),
     }
+
+
+@router.delete("/sessions/{session_id}", status_code=204)
+async def delete_session(session_id: UUID, request: Request) -> Response:
+    if not await repo.delete_session(request.app.state.pool, session_id):
+        raise AppError("not_found", "Session not found.")
+    log.info("session_deleted", session_id=str(session_id))
+    return Response(status_code=204)
 
 
 def sse(event: str, data: Any) -> str:

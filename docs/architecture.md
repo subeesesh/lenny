@@ -121,6 +121,7 @@ Codes: `validation_error` 422, `not_found` 404, `provider_not_configured` 400, `
 | PUT | `/config` | `{provider, model?}` sets the active provider/model (global, in memory; default from `.env`); 400 `provider_not_configured` for Anthropic without a key |
 | POST | `/sessions` | `{"user_meta":{"display_name":"..."}}` → 201 `{id, title, created_at}` |
 | GET | `/sessions` | List by `updated_at`, newest first |
+| DELETE | `/sessions/{id}` | 204; deletes the session with its messages and artifacts (`ON DELETE CASCADE`); 404 unknown id |
 | GET | `/sessions/{id}` | Session + messages + artifacts (artifacts without `content`); 404 unknown id, 422 malformed id |
 | POST | `/sessions/{id}/messages` | `{"content": "1–4000 chars", "route_hint": null\|"essay"\|"artifact"}` → SSE |
 | GET | `/artifacts/{id}?session_id=` | Artifact; `session_id` is required so the query is scoped to the session like every other message/artifact query (404 if it belongs to another session) |
@@ -182,7 +183,7 @@ Each skill is a folder with `SKILL.md` (instructions and output format), loaded 
 |---|---|
 | `qa` | retrieve → answer only from `<context>` with `[n]` markers (streamed) → send citations |
 | `essay` | retrieve 10 passages on the topic (+ last answer if present, added to the prompt; more material means less padding with invented examples) → generate with `ship30/SKILL.md` → if words outside 1,125–1,375, one retry that states the current count, the 1,125–1,375 range and roughly how many words to add or cut, and asks for the full essay back (draft passed back as the assistant turn). The 4B model's first drafts land at ~650–1,050 words, so the retry is the normal path; asking for a word delta instead of a new total stopped extreme overshoots (859 → 1,871 with the old wording) → append sources → save as Markdown artifact. The essay is not streamed into the chat (the retry would replace it); the chat gets a status line and a one-line message with title and word count |
-| `artifact` | retrieve on the topic → generate Markdown or HTML per `artifact/SKILL.md` (HTML if the request says `html` or `one-pager`, unless it says `markdown`) → sanitize HTML → save → `artifact` event |
+| `artifact` | retrieve on the topic → generate Markdown or HTML per `artifact/SKILL.md` (HTML if the request says `html` or `one-pager`, unless it says `markdown`) → convert any Markdown blocks the model slipped into the HTML (`##` headings, loose paragraphs, `**bold**`; real HTML blocks are kept) → drop the model's `style` attributes and wrapper tags and rebuild a fixed structure (`<header>` with title and summary, one `<section>` per `<h2>`, a `<footer>` with numbered sources) → sanitize HTML → save → `artifact` event. The viewer styles that structure (title band, section cards in a two-column grid, highlighted "Key takeaways"), because the 4B model's own inline styling was inconsistent. Markdown documents get the same sources list as essays |
 | `chat` | fixed short reply about what the assistant can do (PRD §1.3, assumption 7: "fixed-style reply"); no retrieval, no LLM call |
 
 Essay and artifact skills retrieve on the topic with the request phrasing removed ("Make an HTML one-pager on X" → "X"): the phrasing lowered similarity by 0.01–0.06 and pushed a valid one-pager request (0.685) under the 0.69 threshold.

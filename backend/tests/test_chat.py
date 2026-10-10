@@ -84,6 +84,21 @@ def test_session_isolation(client: TestClient) -> None:
     assert {s["id"] for s in client.get("/api/v1/sessions").json()} >= {a, b}
 
 
+def test_delete_session_removes_messages_and_artifacts_only_for_that_session(client: TestClient) -> None:
+    use(client, provider=FakeProvider(["<h1>Doc</h1><p>Body [1]</p>"]))
+    doomed, kept = new_session(client), new_session(client)
+    artifact_id = ask(client, doomed, "Make an HTML one-pager about retention")[4][1]["id"]
+    ask(client, kept, "Why does retention compound?")
+
+    assert client.delete(f"/api/v1/sessions/{doomed}").status_code == 204
+    assert client.get(f"/api/v1/sessions/{doomed}").status_code == 404
+    assert client.get(f"/api/v1/artifacts/{artifact_id}", params={"session_id": doomed}).status_code == 404
+    assert doomed not in {s["id"] for s in client.get("/api/v1/sessions").json()}
+    assert len(client.get(f"/api/v1/sessions/{kept}").json()["messages"]) == 2
+    res = client.delete(f"/api/v1/sessions/{doomed}")
+    assert res.status_code == 404 and res.json()["error"]["code"] == "not_found"
+
+
 def test_refusal_streams_without_citations_or_llm(client: TestClient) -> None:
     _, provider = use(client, FakeRetriever(Retrieval(refusal="The transcripts don't cover this.", reason="retrieval_empty")))
     events = ask(client, new_session(client), "What's the weather in Paris?")

@@ -1,11 +1,13 @@
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
-from app.agent.artifact import artifact_type
+from app.agent.artifact import artifact_type, finish
 from app.agent.context import topic_of
 from app.agent.essay import MAX_WORDS, MIN_WORDS, word_count, write_essay
 from app.security.sanitize import MAX_BYTES, ArtifactRejected, check_size, sanitize_html
-from tests.fakes import FakeProvider, ask, new_session, use
+from tests.fakes import HIT, FakeProvider, ask, new_session, use
 
 XSS_PAYLOADS = [
     "<script>alert(1)</script>",
@@ -136,7 +138,8 @@ def test_artifact_endpoint_sanitizes_html_and_is_session_scoped(client: TestClie
     artifact = events[4][1]
     assert (artifact["type"], artifact["title"]) == ("html", "Retention")
     saved = client.get(f"/api/v1/artifacts/{artifact['id']}", params={"session_id": sid}).json()
-    assert saved["content"] == "<h1>Retention</h1><p>Compounds [1]</p>"
+    assert saved["content"].startswith("<header><h1>Retention</h1><p>Compounds [1]</p></header><footer><h2>Sources</h2>")
+    assert "Cy Guest — Gamma episode (00:01:05)" in saved["content"] and "<script" not in saved["content"]
     res = client.get(f"/api/v1/artifacts/{artifact['id']}", params={"session_id": other})
     assert res.status_code == 404 and res.json()["error"]["code"] == "not_found"
     assert client.get(f"/api/v1/artifacts/{artifact['id']}").status_code == 422
@@ -168,3 +171,17 @@ def test_essay_retrieves_on_topic_not_request(client: TestClient) -> None:
     ask(client, new_session(client), "Write a Ship 30 essay on retention loops")
     assert retriever.calls == [("retention loops", None)]
     assert retriever.top_ks == [10]
+
+
+def test_markdown_inside_html_one_pager_is_converted() -> None:
+    raw = (Path(__file__).parent / "fixtures" / "mixed_onepager.html").read_text(encoding="utf-8")
+    draft = finish("html", raw, "fallback", [HIT])
+    assert draft.title == "Positioning: The Key to Market Success"
+    assert "##" not in draft.content
+    assert "<section><h2>What Is Positioning?</h2>" in draft.content
+    assert draft.content.startswith("<header><h1>Positioning: The Key to Market Success</h1>")
+    assert "<p>Positioning is not just about choosing a market category" in draft.content
+    assert "<h2>Real-World Example: IBM in Africa</h2>\n<p>Timothy Davis of Shopify" in draft.content
+    assert "<strong>USD</strong>" in draft.content
+    assert "style=" not in draft.content and "<strong>Start with value, not category.</strong>" in draft.content
+    assert draft.content.endswith("</ol></footer>") and draft.content.count("<section>") == 3

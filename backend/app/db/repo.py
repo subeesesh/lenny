@@ -36,6 +36,13 @@ async def get_session(pool: AsyncConnectionPool, session_id: UUID) -> Row | None
     return await fetch_one(pool, f"SELECT {SESSION_COLS} FROM sessions WHERE id = %s", (session_id,))
 
 
+async def delete_session(pool: AsyncConnectionPool, session_id: UUID) -> bool:
+    """Messages and artifacts go with it (ON DELETE CASCADE)."""
+    async with pool.connection() as conn:
+        cur = await conn.execute("DELETE FROM sessions WHERE id = %s", (session_id,))
+    return cur.rowcount > 0
+
+
 async def list_messages(pool: AsyncConnectionPool, session_id: UUID) -> list[Row]:
     return await fetch_all(
         pool, f"SELECT {MESSAGE_COLS} FROM messages WHERE session_id = %s ORDER BY id", (session_id,)

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ArtifactRef, Citation, ErrorBody } from "../api";
 import { renderAnswer } from "../render";
 
@@ -78,6 +79,20 @@ function Chips({ citations }: { citations: Citation[] }) {
   );
 }
 
+function CopyAnswer({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <button type="button" className="icon-button" onClick={copy} aria-label="Copy answer">
+      <span aria-hidden="true">⧉</span> {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 export function MessageView({ message: m, cloudAvailable, onOpenArtifact, onRetry, onSwitchToCloud }: Props) {
   if (m.role === "user") {
     return <div className="msg user">{m.content}</div>;
@@ -129,6 +144,11 @@ export function MessageView({ message: m, cloudAvailable, onOpenArtifact, onRetr
         </div>
       )}
       {m.citations.length > 0 && <Chips citations={m.citations} />}
+      {m.status === "complete" && m.content && !isRefusal(m) && (
+        <div className="msg-actions">
+          <CopyAnswer text={m.content} />
+        </div>
+      )}
     </div>
   );
 }

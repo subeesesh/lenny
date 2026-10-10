@@ -6,6 +6,7 @@ type Props = {
   currentId: string | null;
   onNew: () => void;
   onSelect: (id: string) => void;
+  onDelete: (session: SessionSummary) => void;
   onRetry: () => void;
 };
 
@@ -20,12 +21,19 @@ function ago(iso: string): string {
   return "just now";
 }
 
-export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onRetry }: Props) {
+export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete, onRetry }: Props) {
   return (
     <nav className="sidebar" aria-label="Chats">
+      <div className="brand">
+        <span className="brand-mark" aria-hidden="true">
+          L
+        </span>
+        <span className="brand-name">Lenny Growth Assistant</span>
+      </div>
       <button type="button" className="primary new-chat" onClick={onNew}>
-        + New chat
+        <span aria-hidden="true">＋</span> New chat
       </button>
+      <h2 className="sidebar-label">Chats</h2>
       {failed ? (
         <div className="sidebar-note" role="alert">
           <p>Couldn't load chats.</p>
@@ -44,7 +52,7 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onRetry 
       ) : (
         <ul className="session-list">
           {sessions.map((s) => (
-            <li key={s.id}>
+            <li key={s.id} className="session-row">
               <button
                 type="button"
                 className="session"
@@ -53,6 +61,15 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onRetry 
               >
                 <span className="session-title">{s.title}</span>
                 <span className="muted session-time">{ago(s.updated_at)}</span>
+              </button>
+              <button
+                type="button"
+                className="session-delete"
+                aria-label={`Delete chat: ${s.title}`}
+                title="Delete chat"
+                onClick={() => onDelete(s)}
+              >
+                🗑
               </button>
             </li>
           ))}

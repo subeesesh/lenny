@@ -32,6 +32,17 @@ Retrieval runs before generation (citations are sent before the first token, and
 - Optional: an Anthropic API key for the cloud provider.
 - Optional: `make`. Every `make` target below also has the plain command (Windows usually has no `make`).
 
+## Quick start
+
+With Docker and Ollama installed and running:
+
+- **Windows:** double-click `start.bat`
+- **macOS / Linux:** `./start.sh`
+
+The script checks Docker and Ollama, creates `.env` (moving the database to port 5433 if 5432 is taken), pulls the two models, builds and starts the app, loads the transcripts (about 10 minutes the first time; it retries once if Ollama was busy) and opens http://localhost:8000. It is safe to re-run; a second run takes about 20 seconds. It does not change any Ollama settings; for faster answers on small GPUs see [Performance](#performance-on-small-gpus).
+
+The manual steps below do the same thing.
+
 ## Setup
 
 ```bash

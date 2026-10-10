@@ -1,17 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { api, ApiError, NetworkError, sendMessage, type Artifact, type ArtifactRef, type Config, type SessionDetail, type SessionSummary } from "./api";
 import { ArtifactPane } from "./components/ArtifactPane";
-import { Composer } from "./components/Composer";
+import { Composer, type Prefill } from "./components/Composer";
 import { MessageView, type UiMessage } from "./components/MessageView";
 import { NameDialog } from "./components/NameDialog";
 import { ProviderBadge } from "./components/ProviderBadge";
 import { Sidebar } from "./components/Sidebar";
+import { SidebarResizer, readSidebarWidth } from "./components/SidebarResizer";
 
 const NAME_KEY = "lga.displayName";
 const EXAMPLES = [
   "How do the guests think about finding product-market fit?",
   "What does Elena Verna say about growth loops?",
   "How should a new PM spend their first 90 days?",
+];
+
+const TILES = [
+  { icon: "💬", title: "Ask a question", text: "A cited answer from ~290 episodes.", prefill: "" },
+  { icon: "✍️", title: "Write a Ship 30 essay", text: "A grounded essay with a sources list.", prefill: "Write a Ship 30 essay on " },
+  { icon: "📄", title: "Make a one-pager", text: "A shareable page you can copy.", prefill: "Make a one-pager on " },
 ];
 
 const readName = () => {
@@ -49,6 +56,8 @@ export default function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [serverDown, setServerDown] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth);
+  const [prefill, setPrefill] = useState<Prefill | null>(null);
   const [pane, setPane] = useState<{ ref: ArtifactRef; artifact: Artifact | null; error: string | null } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -132,6 +141,20 @@ export default function App() {
     } catch (err) {
       handleFailure(err);
       setAnnouncement("Couldn't open that chat.");
+    }
+  }
+
+  async function deleteSession(s: SessionSummary) {
+    if (!window.confirm(`Delete "${s.title}"? This removes its messages and documents and can't be undone.`)) return;
+    try {
+      await api.deleteSession(s.id);
+      if (s.id === sessionId) newChat();
+      setAnnouncement("Chat deleted");
+    } catch (err) {
+      handleFailure(err);
+      setAnnouncement("Couldn't delete that chat.");
+    } finally {
+      loadSessions();
     }
   }
 
@@ -220,7 +243,10 @@ export default function App() {
   const cloudAvailable = Boolean(cloud?.available && config?.active.provider !== "anthropic");
 
   return (
-    <div className={`app${pane ? " with-pane" : ""}${drawerOpen ? " drawer-open" : ""}`}>
+    <div
+      className={`app${pane ? " with-pane" : ""}${drawerOpen ? " drawer-open" : ""}`}
+      style={{ "--sidebar": `${sidebarWidth}px` } as CSSProperties}
+    >
       {serverDown && (
         <div className="banner" role="alert">
           <span aria-hidden="true">⚠</span> Can't reach the server.
@@ -235,8 +261,10 @@ export default function App() {
         currentId={sessionId}
         onNew={newChat}
         onSelect={selectSession}
+        onDelete={deleteSession}
         onRetry={loadSessions}
       />
+      <SidebarResizer width={sidebarWidth} onChange={setSidebarWidth} />
       <div className="drawer-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
       <main className="chat">
         <header className="chat-header">
@@ -248,9 +276,27 @@ export default function App() {
         </header>
         <div className="messages">
           {messages.length === 0 ? (
-            <div className="empty">
-              <p>Ask anything about Lenny's Podcast. Answers come only from the episode transcripts, with sources.</p>
-              <ul>
+            <div className="welcome">
+              <span className="welcome-mark" aria-hidden="true">
+                L
+              </span>
+              <h2>{displayName ? `Hi ${displayName}, what do you want to learn?` : "What do you want to learn?"}</h2>
+              <p className="muted">
+                Ask anything about Lenny's Podcast. Answers come only from the episode transcripts, with sources you can click.
+              </p>
+              <div className="tiles">
+                {TILES.map((t) => (
+                  <button key={t.title} type="button" className="tile" disabled={busy} onClick={() => setPrefill({ text: t.prefill, nonce: Date.now() })}>
+                    <span className="tile-icon" aria-hidden="true">
+                      {t.icon}
+                    </span>
+                    <strong>{t.title}</strong>
+                    <span className="muted small">{t.text}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="muted small examples-label">Or try one of these:</p>
+              <ul className="examples">
                 {EXAMPLES.map((q) => (
                   <li key={q}>
                     <button type="button" className="example" disabled={busy} onClick={() => send(q, null)}>
@@ -274,7 +320,7 @@ export default function App() {
           )}
           <div ref={endRef} />
         </div>
-        <Composer disabled={busy} onSend={send} />
+        <Composer disabled={busy} prefill={prefill} onSend={send} />
       </main>
       {pane && <ArtifactPane artifact={pane.artifact} loadingTitle={pane.ref.title} error={pane.error} onClose={() => setPane(null)} />}
       <div className="visually-hidden" aria-live="polite">

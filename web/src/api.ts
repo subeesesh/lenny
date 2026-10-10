@@ -71,6 +71,9 @@ export const api = {
   session: (id: string) => json<SessionDetail>("GET", `/sessions/${id}`),
   createSession: (displayName: string) =>
     json<{ id: string; title: string }>("POST", "/sessions", { user_meta: { display_name: displayName } }),
+  deleteSession: async (id: string) => {
+    await request("DELETE", `/sessions/${id}`);
+  },
   config: () => json<Config>("GET", "/config"),
   setProvider: (provider: string) => json<Config>("PUT", "/config", { provider }),
   artifact: (id: string, sessionId: string) =>

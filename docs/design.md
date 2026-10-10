@@ -14,7 +14,7 @@ Status: v3 (minimal) · 2026-10-09 · updated after build step 7
 
 ```
 App
-├── Sidebar: New chat · session list (title, relative time)
+├── Sidebar: New chat · session list (title, relative time, delete on hover/focus with confirmation)
 ├── Chat
 │   ├── Header: session title · provider badge ("Local · qwen3:4b-instruct" / "Cloud · claude-sonnet-4-6")
 │   ├── Messages: user / assistant · citation chips · artifact cards · status line
@@ -30,7 +30,7 @@ On first visit a small dialog asks for a display name (saved in the browser and 
 
 | Width | Layout |
 |---|---|
-| ≥ 1024 px | Sidebar 240 px · chat · artifact pane 45% |
+| ≥ 1024 px | Sidebar 240 px (drag its edge to resize 180–420 px; double-click resets; ← → keys when focused; width remembered in the browser) · chat · artifact pane 45% |
 | < 1024 px | Sidebar becomes a drawer (menu button); artifact opens as a full-screen sheet with Back |
 
 Chat text max width ~72 characters; composer stays at the bottom.
@@ -66,11 +66,12 @@ Chat text max width ~72 characters; composer stays at the bottom.
 ## 6. Artifact viewer
 - Markdown and HTML both render inside a sandboxed iframe (no scripts, no network, no forms, no navigation). The page itself can never be affected by artifact content.
 - Markdown uses a readable serif style inside the iframe.
+- HTML one-pagers get a fixed design applied by the viewer, not by the model: a title band with the summary, sections as cards in a two-column grid (one column on narrow screens), a highlighted "Key takeaways" card, styled quotes and a small sources footer; light and dark.
 - Preview / Source toggle; Source is plain monospace text. Copy copies the source.
 - Trade-off: links inside artifacts don't open (sandbox blocks navigation). Acceptable for documents; sources are also clickable as chips in the chat.
 
 ## 7. Visual style
-- Calm, content-first. Light and dark via CSS variables following `prefers-color-scheme`.
+- Calm, content-first, warm: a cream page with floating rounded panels (sidebar, chat, artifact pane), white cards, and one amber accent used for the active chat, primary buttons, the user's message bubbles and the send button. Answers sit in white cards with a Copy action; the composer is a dark pill with a round send button and the two quick actions as chips above it. The empty state is a welcome card with three tiles (Ask, Ship 30 essay, One-pager) that prefill the composer, plus the example questions. Light and dark (a matching warm dark palette) via CSS variables following `prefers-color-scheme`. Text on the amber accent is dark for contrast.
 - System sans for UI; serif for artifact bodies.
 - Neutral surfaces, one accent colour; status always uses icon + text, never colour alone.
 - 4 px spacing scale; line height 1.6 in messages. Motion limited to short fades, off under `prefers-reduced-motion`.

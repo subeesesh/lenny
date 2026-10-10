@@ -59,7 +59,8 @@
 | Auth, roles, sharing | Not needed for an internal evaluation |
 | Comparing chunking strategies, HNSW index | ~16.5k vectors: exact search takes milliseconds; one sensible chunker is enough |
 | Hybrid search, reranker, LLM query rewriting, LLM router | Extra calls and latency; simple rules suffice |
-| Artifact editing/versions, download, session rename/delete | Not required |
+| Delete a chat (with its messages and documents) | Added after build step 7 at the product owner's request |
+| Artifact editing/versions, download, session rename | Not required |
 | OpenAI provider | One cloud provider is required; one is enough |
 | Ollama inside Compose | GPU passthrough is unreliable on Windows; host Ollama is documented |
 
