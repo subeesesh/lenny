@@ -10,7 +10,7 @@ from app.db.pool import SCHEMA_PATH
 from app.ingest.chunk import chunk_turns
 from app.ingest.clean import Turn, clean_turns, split_turns
 from app.ingest.pipeline import run
-from app.ingest.source import load_episodes, select_episodes
+from app.ingest.source import Episode, load_episodes, select_episodes
 
 EPISODES = Path(__file__).parent / "fixtures" / "episodes"
 
@@ -73,13 +73,45 @@ def test_tags_stripped() -> None:
     assert "[" not in text
 
 
-def test_duplicate_and_non_episode_dropped_and_shared_video_links_nulled() -> None:
+def test_duplicate_and_non_episode_dropped_and_unverified_links_nulled() -> None:
     kept, duplicates = select_episodes(load_episodes(EPISODES))
     assert duplicates == 1
     assert [e.slug for e in kept] == ["alpha", "beta", "delta", "gamma"]
     urls = {e.slug: e.url for e in kept}
     assert urls["gamma"] is None and urls["delta"] is None
     assert urls["alpha"] == "https://www.youtube.com/watch?v=aaa"
+
+
+def video_episode(slug: str, speaker: str, title: str, duration_s: float | None, last_ts: str,
+                  description: str = "", video_id: str = "v") -> Episode:
+    body = f"{speaker} (00:00:05):\nHello.\n\nLenny (00:00:20):\nHi.\n\n{speaker} ({last_ts}):\nBye.\n"
+    return Episode(slug, title, speaker, f"https://www.youtube.com/watch?v={video_id}", video_id, None, slug, slug, body,
+                   duration_s, description)
+
+
+@pytest.mark.parametrize(
+    ("episode", "linked"),
+    [
+        (video_episode("match", "Lauryn Isford", "Mastering onboarding | Lauryn Isford (Airtable)", 3861, "01:03:40"), True),
+        (video_episode("other-guest", "Merci Grace", "Layoffs with grace | Matt Mochary", 3861, "01:03:40",
+                       "Matt Mochary, CEO of Mochary Method"), False),
+        (video_episode("clip", "Ada Chen", "Career advice | Ada Chen", 230, "01:18:00"), False),
+        (video_episode("runs-past-video", "Tomer Cohen", "AI and PM | Tomer Cohen", 4050, "01:08:40"), False),
+        (video_episode("in-description", "Bret Taylor", "Built Google Maps: Bret Taylor (Sierra)", 3600, "00:59:30",
+                       "Bret Taylor’s legendary career"), True),
+        (video_episode("no-length", "Ada Guest", "Topic | Ada Guest", None, "00:59:30"), False),
+    ],
+)
+def test_link_kept_only_when_video_length_and_speaker_match(episode: Episode, linked: bool) -> None:
+    kept, _ = select_episodes([episode])
+    assert (kept[0].url is not None) == linked
+
+
+def test_shared_video_link_goes_to_the_closest_fit() -> None:
+    first = video_episode("uri-levine", "Uri Levine", "Crisis | Uri Levine (Waze)", 5026, "01:22:06")
+    second = video_episode("uri-levine-20", "Uri Levine", "Crisis | Uri Levine (Waze)", 5026, "01:23:21")
+    kept, _ = select_episodes([first, second])
+    assert [e.slug for e in kept if e.url] == ["uri-levine-20"]
 
 
 def test_chunks_keep_speaker_inline_and_track_timestamps() -> None:
@@ -105,3 +137,7 @@ def test_rerun_skips_unchanged(conn: psycopg.Connection) -> None:
     second = run(conn, EPISODES, embed)
     assert (second.ingested, second.skipped_unchanged) == (0, 4)
     assert embed.calls == calls
+
+    conn.execute("UPDATE episodes SET url = 'https://stale' WHERE slug = 'gamma'")
+    run(conn, EPISODES, embed)
+    assert conn.execute("SELECT url FROM episodes WHERE slug = 'gamma'").fetchone()[0] is None
