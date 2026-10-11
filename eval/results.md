@@ -1,6 +1,6 @@
 # Eval results
 
-Run 2026-10-10 11:55 · provider `ollama` · model `qwen3:4b-instruct-2507-q4_K_M` · `python eval/run_eval.py` against the running API. Each question in a fresh session.
+Run 2026-10-11 22:12 · provider `ollama-sdk` · model `lenny-qwen3-4b` · `python eval/run_eval.py` against the running API. Each question in a fresh session.
 
 ## Metrics (PRD §1.2)
 
@@ -9,8 +9,8 @@ Run 2026-10-10 11:55 · provider `ollama` · model `qwen3:4b-instruct-2507-q4_K_
 | M1 gold episode among cited sources (chips) | ≥ 80% | 30/30 (100%) | ✅ |
 | M1b gold episode cited with `[n]` in the answer text | (info) | 27/30 (90%) | |
 | M2 out-of-scope refused | ≥ 9 of 10 | 10/10 (100%) | ✅ |
-| M3 essay 1,125–1,375 words | ≥ 80% of 10 (cloud); local reported | 4/10 (40%) | ❌ |
-| M4 time to first token, p50 | < 5 s | 1.9 s | ✅ |
+| M3 essay 250–350 words | ≥ 80% of 10 (cloud); local reported | 9/10 (90%) | ✅ |
+| M4 time to first token, p50 | < 5 s | 3.1 s | ✅ |
 | Retrieval latency p50 (request → `citations` event, incl. query embedding) | (info) | 0.2 s | |
 
 M1 is matched by episode slug only: a hit if `gold_episode` is among the cited episodes. The passage-level anchor matching described in `eval_set.json` is not done; it would need episode text and chunk offsets in the schema.
@@ -36,44 +36,44 @@ Offline replay of `RETRIEVAL_MIN_SCORE` using each question's top retrieval scor
 
 | id | type | top score | gold rank in chips | refused | TTFT | total |
 |---|---|---|---|---|---|---|
-| g01 | framework | 0.785 | 1 | no | 2.4 s | 9.0 s |
-| g02 | framework | 0.807 | 2 | no | 2.0 s | 5.8 s |
-| g03 | framework | 0.793 | 1 | no | 1.8 s | 5.4 s |
-| g04 | framework | 0.824 | 1 | no | 1.8 s | 8.4 s |
-| g05 | fact | 0.831 | 1 | no | 1.8 s | 8.3 s |
-| g06 | attribution | 0.802 | 1 | no | 1.9 s | 5.5 s |
-| g07 | framework | 0.741 | 5 | no | 2.0 s | 7.8 s |
-| g08 | framework | 0.782 | 1 | no | 1.8 s | 9.7 s |
-| g09 | fact | 0.753 | 1 | no | 1.8 s | 5.3 s |
-| g10 | fact | 0.722 | 1 | yes | 2.0 s | 2.3 s |
-| g11 | fact | 0.785 | 1 | no | 2.4 s | 4.9 s |
-| g12 | fact | 0.793 | 1 | no | 1.9 s | 6.8 s |
-| g13 | fact | 0.827 | 1 | no | 1.8 s | 4.3 s |
-| g14 | framework | 0.821 | 1 | no | 1.8 s | 6.7 s |
-| g15 | fact | 0.808 | 1 | no | 2.0 s | 6.2 s |
-| g16 | fact | 0.777 | 1 | no | 1.8 s | 6.4 s |
-| g17 | framework | 0.709 | 1 | yes | 1.9 s | 2.2 s |
-| g18 | framework | 0.744 | 1 | no | 1.9 s | 5.6 s |
-| g19 | fact | 0.767 | 1 | no | 1.7 s | 5.7 s |
-| g20 | fact | 0.741 | 1 | yes | 2.1 s | 2.4 s |
-| g21 | fact | 0.794 | 1 | no | 2.0 s | 6.1 s |
-| g22 | fact | 0.704 | 2 | no | 1.9 s | 4.7 s |
-| g23 | framework | 0.772 | 1 | no | 2.0 s | 9.2 s |
-| g24 | fact | 0.807 | 1 | no | 2.1 s | 10.7 s |
-| g25 | fact | 0.838 | 1 | no | 2.0 s | 8.6 s |
-| g26 | fact | 0.771 | 1 | no | 2.4 s | 8.0 s |
-| g27 | host_question | 0.887 | 1 | no | 2.0 s | 7.4 s |
-| g28 | host_question | 0.767 | 1 | no | 2.1 s | 7.0 s |
-| g29 | host_question | 0.772 | 1 | no | 1.8 s | 7.4 s |
-| g30 | host_question | 0.827 | 1 | no | 1.8 s | 8.6 s |
+| g01 | framework | 0.785 | 1 | no | 17.5 s | 31.3 s |
+| g02 | framework | 0.807 | 2 | no | 4.8 s | 12.1 s |
+| g03 | framework | 0.793 | 1 | no | 2.9 s | 9.9 s |
+| g04 | framework | 0.824 | 1 | no | 3.0 s | 15.9 s |
+| g05 | fact | 0.831 | 1 | no | 3.2 s | 15.5 s |
+| g06 | attribution | 0.802 | 1 | no | 3.5 s | 10.0 s |
+| g07 | framework | 0.741 | 5 | no | 3.5 s | 18.3 s |
+| g08 | framework | 0.782 | 1 | no | 2.9 s | 17.6 s |
+| g09 | fact | 0.753 | 1 | no | 3.5 s | 12.0 s |
+| g10 | fact | 0.722 | 1 | yes | 3.6 s | 4.2 s |
+| g11 | fact | 0.785 | 1 | no | 3.5 s | 7.2 s |
+| g12 | fact | 0.793 | 1 | no | 3.0 s | 9.2 s |
+| g13 | fact | 0.827 | 1 | no | 2.9 s | 7.4 s |
+| g14 | framework | 0.821 | 1 | no | 2.9 s | 17.7 s |
+| g15 | fact | 0.808 | 1 | no | 3.1 s | 11.4 s |
+| g16 | fact | 0.777 | 1 | no | 3.2 s | 12.2 s |
+| g17 | framework | 0.709 | 1 | yes | 2.9 s | 3.4 s |
+| g18 | framework | 0.744 | 1 | no | 3.0 s | 11.2 s |
+| g19 | fact | 0.767 | 1 | no | 2.6 s | 13.3 s |
+| g20 | fact | 0.741 | 1 | yes | 3.3 s | 3.8 s |
+| g21 | fact | 0.794 | 1 | no | 3.5 s | 10.8 s |
+| g22 | fact | 0.704 | 2 | no | 2.9 s | 7.8 s |
+| g23 | framework | 0.772 | 1 | no | 3.1 s | 14.5 s |
+| g24 | fact | 0.807 | 1 | no | 3.1 s | 10.7 s |
+| g25 | fact | 0.838 | 1 | no | 3.0 s | 13.0 s |
+| g26 | fact | 0.771 | 1 | no | 3.1 s | 12.4 s |
+| g27 | host_question | 0.887 | 1 | no | 3.2 s | 13.7 s |
+| g28 | host_question | 0.767 | 1 | no | 3.1 s | 12.6 s |
+| g29 | host_question | 0.772 | 1 | no | 2.9 s | 17.0 s |
+| g30 | host_question | 0.827 | 1 | no | 2.8 s | 9.5 s |
 | o01 | off_topic | 0.631 |  | yes | 0.2 s | 0.2 s |
 | o02 | off_topic | 0.660 |  | yes | 0.2 s | 0.2 s |
-| o03 | off_topic | 0.567 |  | yes | 0.2 s | 0.2 s |
+| o03 | off_topic | 0.567 |  | yes | 0.3 s | 0.3 s |
 | o04 | off_topic | 0.590 |  | yes | 0.2 s | 0.2 s |
-| o05 | off_topic | 0.672 |  | yes | 0.2 s | 0.2 s |
+| o05 | off_topic | 0.672 |  | yes | 0.2 s | 0.3 s |
 | o06 | off_topic | 0.630 |  | yes | 0.2 s | 0.2 s |
-| o07 | near_domain_trap | 0.725 |  | yes | 2.1 s | 2.3 s |
-| o08 | near_domain_trap | 0.742 |  | yes | 1.9 s | 2.1 s |
+| o07 | near_domain_trap | 0.725 |  | yes | 3.1 s | 3.5 s |
+| o08 | near_domain_trap | 0.742 |  | yes | 2.8 s | 3.3 s |
 | o09 | false_attribution_trap | – |  | yes | 0.0 s | 0.0 s |
 | o10 | privacy | – |  | yes | 0.0 s | 0.0 s |
 
@@ -81,16 +81,22 @@ Offline replay of `RETRIEVAL_MIN_SCORE` using each question's top retrieval scor
 
 | topic | words | in range | total |
 |---|---|---|---|
-| finding product-market fit | 1269 | yes | 141.9 s |
-| retention | 1086 | no | 104.1 s |
-| pricing | 1327 | yes | 155.7 s |
-| hiring product managers | 1290 | yes | 127.9 s |
-| growth loops | 1408 | no | 150.3 s |
-| user onboarding | 1435 | no | 141.3 s |
-| positioning | 1375 | yes | 159.2 s |
-| managing up | 1396 | no | 144.7 s |
-| building a growth team | 1110 | no | 111.7 s |
+| finding product-market fit | 285 | yes | 47.0 s |
+| retention | 312 | yes | 94.4 s |
+| pricing | 290 | yes | 50.0 s |
+| hiring product managers | 292 | yes | 50.9 s |
+| growth loops | 332 | yes | 109.5 s |
+| user onboarding | 337 | yes | 57.0 s |
+| positioning | 291 | yes | 49.3 s |
+| managing up | 269 | yes | 44.2 s |
+| building a growth team | 294 | yes | 47.1 s |
 | running user interviews | error | no | 0.2 s |
+
+## Notes on this run (2026-10-11 22:12)
+
+- **Essay target changed to Ship 30 length:** 250–350 words (about 300), down from 1,125–1,375. Real Ship 30 atomic essays are ~250–300 words. Same one-retry rule and 10 passages.
+- **M3, local: 9/10.** All nine essays written landed in range (269–337 words) in 44–110 s each (was 104–159 s). The 10th topic ("running user interviews") is still refused by retrieval just under the 0.69 threshold, as in the earlier run.
+- Provider `ollama-sdk` (the default local path). M4 3.1 s p50, measured right after Ollama was started.
 
 ## Tuning notes (2026-10-10)
 

@@ -30,7 +30,7 @@ ESSAY_TOPICS = [
     "running user interviews",
 ]
 THRESHOLDS = [0.60, 0.63, 0.66, 0.68, 0.69, 0.70, 0.72, 0.75]
-MIN_WORDS, MAX_WORDS = 1125, 1375
+MIN_WORDS, MAX_WORDS = 250, 350
 
 
 @dataclass
@@ -181,7 +181,7 @@ def report(config: dict, results: list[tuple[dict, Run]], essays: list[tuple[str
         f"| M1 gold episode among cited sources (chips) | ≥ 80% | {pct(m1, len(grounded))} | {'✅' if m1 >= 0.8 * len(grounded) else '❌'} |",
         f"| M1b gold episode cited with `[n]` in the answer text | (info) | {pct(m1_text, len(grounded))} | |",
         f"| M2 out-of-scope refused | ≥ 9 of 10 | {pct(m2, len(oos))} | {'✅' if m2 >= 0.9 * len(oos) else '❌'} |",
-        f"| M3 essay 1,125–1,375 words | ≥ 80% of 10 (cloud); local reported | {pct(len(in_range), len(essays)) if essays else 'not run'} | "
+        f"| M3 essay 250–350 words | ≥ 80% of 10 (cloud); local reported | {pct(len(in_range), len(essays)) if essays else 'not run'} | "
         f"{('✅' if len(in_range) >= 0.8 * len(essays) else '❌') if essays else ''} |",
         f"| M4 time to first token, p50 | < 5 s | {secs(m4)} | {'✅' if m4 is not None and m4 < 5 else '❌'} |",
         f"| Retrieval latency p50 (request → `citations` event, incl. query embedding) | (info) | {secs(p50(retrievals))} | |",

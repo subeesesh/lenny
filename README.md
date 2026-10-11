@@ -3,7 +3,7 @@
 A chat assistant that answers questions about **Lenny's Podcast** strictly from the episode transcripts, with clickable sources, and turns what the guests said into a **Ship 30 for 30 essay** or an **HTML one-pager**. It runs fully local on Ollama by default, through the **Claude Agent SDK** pointed at Ollama's Anthropic-compatible API (or calling Ollama directly); Anthropic Claude is an optional cloud provider on the same SDK adapter. You switch between the three with one click, never automatically.
 
 - **Ask:** answers stream with `[n]` citations and sources that link to the YouTube timestamp. Questions the transcripts don't cover get "The transcripts don't cover this." Follow-ups ("give me an example of that") keep the topic; a new question in the same chat starts fresh. You can also ask it to apply the advice ("turn the second recommendation into a seven-day experiment"): the plan is built from cited passages and labeled as an application, not something said on the podcast.
-- **Write a Ship 30 essay:** a ~1,250-word atomic essay grounded in 10 passages, with a sources list, opened in a side viewer.
+- **Write a Ship 30 essay:** a ~300-word atomic essay (Ship 30 length) grounded in 10 passages, with a sources list, opened in a side viewer.
 - **Make a one-pager:** a styled HTML (or Markdown) document, sanitized on the server and rendered in a sandboxed iframe.
 - Sessions, messages, citations and documents are stored in PostgreSQL and survive restarts.
 
@@ -129,8 +129,8 @@ Latest local results ([eval/results.md](eval/results.md)):
 |---|---|---|
 | M1 gold episode among the cited sources | ≥ 80% | 30/30 |
 | M2 out-of-scope questions refused | ≥ 9/10 | 10/10 |
-| M3 essay 1,125–1,375 words | ≥ 80% on cloud; local reported | 4/10 (misses within ~60 words) |
-| M4 time to first token, p50 | < 5 s | 1.9 s (with the settings above) |
+| M3 essay 250–350 words | ≥ 80% on cloud; local reported | 9/10 (was 4/10 at the old 1,125–1,375 range) |
+| M4 time to first token, p50 | < 5 s | 3.1 s (1.9 s in an earlier warm run with the settings above) |
 
 The results also include a threshold sweep, the tuning history and an accuracy audit of the generated text. Manual UI checks: [docs/manual-test-plan.md](docs/manual-test-plan.md).
 

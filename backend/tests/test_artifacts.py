@@ -78,28 +78,28 @@ def essay(words: int) -> str:
 
 
 async def test_essay_retry_triggered_when_too_short() -> None:
-    provider = FakeProvider([essay(600)], [essay(1250)])
+    provider = FakeProvider([essay(150)], [essay(300)])
     text, words, retried = await write_essay(provider, "ship30", [{"role": "user", "content": "write"}])
-    assert (words, retried) == (1250, True)
+    assert (words, retried) == (300, True)
     assert len(provider.calls) == 2
     retry_messages = provider.calls[1][1]
-    assert retry_messages[-2] == {"role": "assistant", "content": essay(600)}
-    assert retry_messages[-1]["content"].startswith("The essay has 600 words and must end up between 1,125 and 1,375 words. Add about 650 words")
+    assert retry_messages[-2] == {"role": "assistant", "content": essay(150)}
+    assert retry_messages[-1]["content"].startswith("The essay has 150 words and must end up between 250 and 350 words. Add about 150 words")
     assert retry_messages[-1]["content"].endswith("Return the full essay, nothing else.")
 
 
 async def test_essay_retry_shortens_when_too_long_and_happens_only_once() -> None:
-    provider = FakeProvider([essay(2000)], [essay(1500)], [essay(1250)])
+    provider = FakeProvider([essay(600)], [essay(400)], [essay(300)])
     _, words, retried = await write_essay(provider, "ship30", [{"role": "user", "content": "write"}])
-    assert (words, retried) == (1500, True)
+    assert (words, retried) == (400, True)
     assert len(provider.calls) == 2
-    assert "Cut about 750 words" in provider.calls[1][1][-1]["content"]
+    assert "Cut about 300 words" in provider.calls[1][1][-1]["content"]
 
 
 async def test_essay_in_range_is_not_retried() -> None:
-    provider = FakeProvider([essay(1200)])
+    provider = FakeProvider([essay(280)])
     _, words, retried = await write_essay(provider, "ship30", [{"role": "user", "content": "write"}])
-    assert (words, retried, len(provider.calls)) == (1200, False, 1)
+    assert (words, retried, len(provider.calls)) == (280, False, 1)
     assert MIN_WORDS <= words <= MAX_WORDS
 
 
@@ -117,7 +117,7 @@ def test_artifact_type(content: str, expected: str) -> None:
 
 
 def test_essay_endpoint_saves_markdown_artifact_with_sources(client: TestClient) -> None:
-    use(client, provider=FakeProvider([essay(1250)]))
+    use(client, provider=FakeProvider([essay(300)]))
     sid = new_session(client)
     events = ask(client, sid, "Write a Ship 30 essay on retention")
     assert [e for e, _ in events] == ["status", "status", "citations", "token", "artifact", "done"]
@@ -127,7 +127,7 @@ def test_essay_endpoint_saves_markdown_artifact_with_sources(client: TestClient)
     assert "## Sources" in saved["content"]
     assert "1. [Cy Guest — Gamma episode (00:01:05)](https://www.youtube.com/watch?v=x&t=65s)" in saved["content"]
     assert saved["message_id"] == events[-1][1]["message_id"]
-    assert "1,250 words" in events[3][1]["text"]
+    assert "300 words" in events[3][1]["text"]
 
 
 def test_artifact_endpoint_sanitizes_html_and_is_session_scoped(client: TestClient) -> None:
@@ -167,7 +167,7 @@ def test_topic_of_strips_request_phrasing(content: str, topic: str) -> None:
 
 
 def test_essay_retrieves_on_topic_not_request(client: TestClient) -> None:
-    retriever, _ = use(client, provider=FakeProvider([essay(1250)]))
+    retriever, _ = use(client, provider=FakeProvider([essay(300)]))
     ask(client, new_session(client), "Write a Ship 30 essay on retention loops")
     assert retriever.calls == [("retention loops", None)]
     assert retriever.top_ks == [10]

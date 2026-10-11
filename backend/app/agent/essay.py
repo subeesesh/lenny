@@ -20,7 +20,7 @@ from app.agent.context import (
 )
 from app.llm.base import Message, Provider
 
-MIN_WORDS, TARGET_WORDS, MAX_WORDS = 1125, 1250, 1375
+MIN_WORDS, TARGET_WORDS, MAX_WORDS = 250, 300, 350
 ESSAY_TOP_K = 10
 WORD = re.compile(r"[A-Za-z0-9][\w'’-]*")
 TITLE = re.compile(r"^#\s+(.+)$", re.M)

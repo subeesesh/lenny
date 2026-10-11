@@ -11,7 +11,7 @@ Source of these principles: Ship 30 for 30, https://www.ship30for30.com
 4. **Make it skimmable.** Use `##` headers to signal sections (at least three), bullets for lists, and **bold** for key phrases.
 5. **Specific and concrete.** No vague advice. Name the tactic, the number and the person (the guest who said it).
 6. **Close with one takeaway.** End with a single clear action the reader can take today.
-7. **Length.** About 1,250 words (1,125–1,375 is acceptable).
+7. **Length.** About 300 words (250–350 is acceptable), like a Ship 30 atomic essay. Keep every section short.
 
 ## Grounding rules
 - Use only facts, stories, numbers and quotes from `<context>`. No outside knowledge.

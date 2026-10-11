@@ -27,7 +27,7 @@
 |---|---|---|---|
 | M1 | Grounded questions where a cited episode is the gold episode | ≥ 80% | 30 grounded questions in `eval/eval_set.json`, eval script |
 | M2 | Out-of-scope questions correctly refused | ≥ 9 of 10 | 10 out-of-scope questions, eval script |
-| M3 | Essay length 1,125–1,375 words | ≥ 80% of 10 runs (cloud); local result reported separately | Word count in eval script |
+| M3 | Essay length 250–350 words (Ship 30 atomic essay length) | ≥ 80% of 10 runs (cloud); local result reported separately | Word count in eval script |
 | M4 | Local time to first token | < 5 s p50 | Logged `ttft_ms` |
 | M5 | Fresh-clone setup | Running in ≤ 15 min from README (excluding model downloads) | Manual run |
 

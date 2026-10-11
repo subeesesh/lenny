@@ -29,7 +29,7 @@ Mark each row ✅ / ❌ with a note. Rows marked **AC** cover PRD acceptance cri
 
 | # | Steps | Expected | Result |
 |---|---|---|---|
-| 10 **AC5** | Type `retention`, click **Write a Ship 30 essay** | Message "Write a Ship 30 essay on retention"; after a few minutes "Here's your Ship 30 essay: **…** (N words)", N in 1,125–1,375; pane opens: serif essay with hook, ≥3 headings, bullets, bold, takeaway, numbered **Sources**; `essay_generated` in `docker compose logs api` shows `word_count` | |
+| 10 **AC5** | Type `retention`, click **Write a Ship 30 essay** | Message "Write a Ship 30 essay on retention"; after a few minutes "Here's your Ship 30 essay: **…** (N words)", N in 250–350; pane opens: serif essay with hook, ≥3 headings, bullets, bold, takeaway, numbered **Sources**; `essay_generated` in `docker compose logs api` shows `word_count` | |
 | 11 | In the pane: Source, Preview, Copy | Source = raw Markdown; Preview returns; Copy → "Copied"; note "Sandboxed: scripts, forms, links and external content are blocked." | |
 | 12 | Click a source link inside the essay preview | Nothing happens (sandbox blocks navigation; architecture §7) | |
 | 13 | Type `how to run user interviews`, click **Make a one-pager** | Styled HTML one-pager opens; artifact card with **Open** in the chat | |
