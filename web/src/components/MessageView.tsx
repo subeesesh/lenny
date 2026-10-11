@@ -58,10 +58,12 @@ function errorText(error: ErrorBody | null | undefined): string {
 
 type SourceGroup = { key: string; guest: string; title: string; items: { n: number; c: Citation }[] };
 
-/** One row per episode: the same episode often supplies several passages, shown as timestamp links. */
+/** One row per episode: the same episode often supplies several passages, shown as timestamp links.
+ * Sources without a verified video link are left out; the rest keep their numbers so they match the [n] markers. */
 function groupSources(citations: Citation[]): SourceGroup[] {
   const groups = new Map<string, SourceGroup>();
   citations.forEach((c, i) => {
+    if (!c.url) return;
     const key = c.slug ?? c.title;
     const group = groups.get(key) ?? { key, guest: guestName(c.guest), title: c.title.split(" | ")[0], items: [] };
     group.items.push({ n: i + 1, c });
@@ -81,44 +83,33 @@ function shortTs(ts: string | null): string {
 /** Repeat guests are numbered in the dataset ("Elena Verna 4.0"); the episode title already tells them apart. */
 const guestName = (guest: string | null) => (guest ?? "Unknown guest").replace(/\s+\d+\.0$/, "");
 
-const NO_LINK = "No link available in the repo";
-
 function Sources({ citations }: { citations: Citation[] }) {
+  const groups = groupSources(citations);
+  if (groups.length === 0) return null;
   return (
     <section className="sources" aria-label="Sources">
       <h3 className="sources-label">Sources</h3>
       <ol className="source-list">
-        {groupSources(citations).map((g) => (
+        {groups.map((g) => (
           <li key={g.key} className="source">
-            {g.items.some(({ c }) => c.url) ? (
-              <span className="source-title" title={`${g.guest} — ${g.title}`}>
-                <strong>{g.guest}</strong> <span className="muted">{g.title}</span>
-              </span>
-            ) : (
-              <span className="source-title">
-                <strong>{g.guest}</strong>
-              </span>
-            )}
+            <span className="source-title" title={`${g.guest} — ${g.title}`}>
+              <strong>{g.guest}</strong> <span className="muted">{g.title}</span>
+            </span>
             <span className="source-links">
-              {g.items.map(({ n, c }) => {
-                const label = `Source ${n}: ${g.guest}, ${g.title}${c.ts ? ` at ${shortTs(c.ts)}` : ""}`;
-                const text = (
-                  <>
-                    <span className="source-n">{n}</span>
-                    {c.ts ? shortTs(c.ts) : "link"}
-                  </>
-                );
-                return c.url ? (
-                  <a key={n} className="source-link" href={c.url} target="_blank" rel="noopener noreferrer" aria-label={label}>
-                    <PlayIcon size={11} />
-                    {text}
-                  </a>
-                ) : (
-                  <span key={n} className="source-link no-link" tabIndex={0} data-tip={NO_LINK} aria-label={`Source ${n}: ${g.guest}. ${NO_LINK}`}>
-                    <span className="source-n">{n}</span>
-                  </span>
-                );
-              })}
+              {g.items.map(({ n, c }) => (
+                <a
+                  key={n}
+                  className="source-link"
+                  href={c.url ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Source ${n}: ${g.guest}, ${g.title}${c.ts ? ` at ${shortTs(c.ts)}` : ""}`}
+                >
+                  <PlayIcon size={11} />
+                  <span className="source-n">{n}</span>
+                  {c.ts ? shortTs(c.ts) : "link"}
+                </a>
+              ))}
             </span>
           </li>
         ))}

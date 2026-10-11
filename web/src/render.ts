@@ -22,15 +22,15 @@ const chatMarked = new Marked({
   },
 });
 
+/** `[n]` markers become links to the cited moment; a marker whose source has no verified video link is dropped. */
 export function renderAnswer(markdown: string, citations: Citation[]): string {
   const html = chatMarked.parse(markdown, { async: false });
-  return html.replace(/\[(\d+)\]/g, (match, n: string) => {
+  return html.replace(/(\s?)\[(\d+)\]/g, (match, space: string, n: string) => {
     const c = citations[Number(n) - 1];
     if (!c) return match;
+    if (!c.url) return "";
     const label = escapeHtml(`Source ${n}: ${c.guest ?? "Unknown guest"}, ${c.title}`);
-    return c.url
-      ? `<a class="cite" href="${escapeHtml(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${label}">[${n}]</a>`
-      : `<span class="cite" tabindex="0" data-tip="No link available in the repo" aria-label="${label}. No link available in the repo">[${n}]</span>`;
+    return `${space}<a class="cite" href="${escapeHtml(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${label}">[${n}]</a>`;
   });
 }
 
