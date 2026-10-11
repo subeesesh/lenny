@@ -81,6 +81,8 @@ function shortTs(ts: string | null): string {
 /** Repeat guests are numbered in the dataset ("Elena Verna 4.0"); the episode title already tells them apart. */
 const guestName = (guest: string | null) => (guest ?? "Unknown guest").replace(/\s+\d+\.0$/, "");
 
+const NO_LINK = "No link available in the repo";
+
 function Sources({ citations }: { citations: Citation[] }) {
   return (
     <section className="sources" aria-label="Sources">
@@ -88,9 +90,15 @@ function Sources({ citations }: { citations: Citation[] }) {
       <ol className="source-list">
         {groupSources(citations).map((g) => (
           <li key={g.key} className="source">
-            <span className="source-title" title={`${g.guest} — ${g.title}`}>
-              <strong>{g.guest}</strong> <span className="muted">{g.title}</span>
-            </span>
+            {g.items.some(({ c }) => c.url) ? (
+              <span className="source-title" title={`${g.guest} — ${g.title}`}>
+                <strong>{g.guest}</strong> <span className="muted">{g.title}</span>
+              </span>
+            ) : (
+              <span className="source-title">
+                <strong>{g.guest}</strong>
+              </span>
+            )}
             <span className="source-links">
               {g.items.map(({ n, c }) => {
                 const label = `Source ${n}: ${g.guest}, ${g.title}${c.ts ? ` at ${shortTs(c.ts)}` : ""}`;
@@ -106,8 +114,8 @@ function Sources({ citations }: { citations: Citation[] }) {
                     {text}
                   </a>
                 ) : (
-                  <span key={n} className="source-link" aria-label={label}>
-                    {text}
+                  <span key={n} className="source-link no-link" tabIndex={0} data-tip={NO_LINK} aria-label={`Source ${n}: ${g.guest}. ${NO_LINK}`}>
+                    <span className="source-n">{n}</span>
                   </span>
                 );
               })}

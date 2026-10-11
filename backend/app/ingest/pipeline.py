@@ -71,7 +71,7 @@ def run(conn: psycopg.Connection, episodes_dir: Path, embed: Embedder, limit: in
     seen = existing_hashes(conn)
     for ep in kept[:limit]:
         if seen.get(ep.slug) == ep.content_hash:
-            conn.execute("UPDATE episodes SET url = %s WHERE slug = %s", (ep.url, ep.slug))  # depends on other episodes
+            conn.execute("UPDATE episodes SET url = %s, title = %s WHERE slug = %s", (ep.url, ep.title, ep.slug))  # verified across episodes
             summary.skipped_unchanged += 1
             continue
         try:

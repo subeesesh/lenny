@@ -107,6 +107,21 @@ def test_link_kept_only_when_video_length_and_speaker_match(episode: Episode, li
     assert (kept[0].url is not None) == linked
 
 
+@pytest.mark.parametrize(
+    ("speaker", "title", "expected"),
+    [
+        ("Manik Gupta", "Becoming more strategic | Anneka Gupta", "Episode with Manik Gupta"),
+        ("Merci Grace", "Layoffs with grace | Matt Mochary", "Episode with Merci Grace"),
+        ("Cameron Adams", "Inside Canva | Cameron Adams", "Inside Canva | Cameron Adams"),
+        ("John Mark Nickels", "Lessons from Uber | JM Nickels (Uber)", "Lessons from Uber | JM Nickels (Uber)"),
+        ("Ivan Zhao", "Notion's lost years", "Notion's lost years"),
+    ],
+)
+def test_title_naming_another_guest_is_replaced(speaker: str, title: str, expected: str) -> None:
+    kept, _ = select_episodes([video_episode("ep", speaker, title, 3600, "00:59:30")])
+    assert kept[0].title == expected
+
+
 def test_shared_video_link_goes_to_the_closest_fit() -> None:
     first = video_episode("uri-levine", "Uri Levine", "Crisis | Uri Levine (Waze)", 5026, "01:22:06")
     second = video_episode("uri-levine-20", "Uri Levine", "Crisis | Uri Levine (Waze)", 5026, "01:23:21")

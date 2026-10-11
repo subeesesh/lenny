@@ -30,7 +30,7 @@ export function renderAnswer(markdown: string, citations: Citation[]): string {
     const label = escapeHtml(`Source ${n}: ${c.guest ?? "Unknown guest"}, ${c.title}`);
     return c.url
       ? `<a class="cite" href="${escapeHtml(c.url)}" target="_blank" rel="noopener noreferrer" aria-label="${label}">[${n}]</a>`
-      : `<span class="cite" aria-label="${label}">[${n}]</span>`;
+      : `<span class="cite" tabindex="0" data-tip="No link available in the repo" aria-label="${label}. No link available in the repo">[${n}]</span>`;
   });
 }
 
