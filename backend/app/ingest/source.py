@@ -14,7 +14,7 @@ from app.ingest.clean import TITLE_LINE, Turn, body_hash, split_turns
 REPO_URL = "https://github.com/ChatPRD/lennys-podcast-transcripts.git"
 COMMIT = "be8ab89"
 NON_EPISODES = {"interview-q-compilation", "teaser_2021"}
-URL_PREFIXES = ("https://www.youtube.com/", "https://youtu.be/")
+YOUTUBE_URL = re.compile(r"https://(?:www\.youtube\.com/watch\?v=|youtu\.be/)[A-Za-z0-9_-]{11}(?:[&?#]|$)")  # real 11-char video id
 WORDS = re.compile(r"[a-z0-9]+")
 VIDEO_FIT_S = (-30, 120)  # video end minus last transcript timestamp; matching pairs measure 0–70 s
 
@@ -58,7 +58,7 @@ def parse_episode(slug: str, raw: str) -> Episode:
         slug=slug,
         title=str(meta.get("title") or (title_line.group(1) if title_line else slug)),
         guest=meta.get("guest"),
-        url=url if url.startswith(URL_PREFIXES) else None,
+        url=url if YOUTUBE_URL.match(url) else None,
         video_id=meta.get("video_id"),
         published_at=parse_date(meta.get("publish_date")),
         content_hash=hashlib.sha256(raw.encode()).hexdigest(),

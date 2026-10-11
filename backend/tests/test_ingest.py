@@ -10,7 +10,7 @@ from app.db.pool import SCHEMA_PATH
 from app.ingest.chunk import chunk_turns
 from app.ingest.clean import Turn, clean_turns, split_turns
 from app.ingest.pipeline import run
-from app.ingest.source import Episode, load_episodes, select_episodes
+from app.ingest.source import Episode, load_episodes, parse_episode, select_episodes
 
 EPISODES = Path(__file__).parent / "fixtures" / "episodes"
 
@@ -79,11 +79,11 @@ def test_duplicate_and_non_episode_dropped_and_unverified_links_nulled() -> None
     assert [e.slug for e in kept] == ["alpha", "beta", "delta", "gamma"]
     urls = {e.slug: e.url for e in kept}
     assert urls["gamma"] is None and urls["delta"] is None
-    assert urls["alpha"] == "https://www.youtube.com/watch?v=aaa"
+    assert urls["alpha"] == "https://www.youtube.com/watch?v=aaaaaaaaaaa"
 
 
 def video_episode(slug: str, speaker: str, title: str, duration_s: float | None, last_ts: str,
-                  description: str = "", video_id: str = "v") -> Episode:
+                  description: str = "", video_id: str = "videoid0001") -> Episode:
     body = f"{speaker} (00:00:05):\nHello.\n\nLenny (00:00:20):\nHi.\n\n{speaker} ({last_ts}):\nBye.\n"
     return Episode(slug, title, speaker, f"https://www.youtube.com/watch?v={video_id}", video_id, None, slug, slug, body,
                    duration_s, description)
@@ -120,6 +120,14 @@ def test_link_kept_only_when_video_length_and_speaker_match(episode: Episode, li
 def test_title_naming_another_guest_is_replaced(speaker: str, title: str, expected: str) -> None:
     kept, _ = select_episodes([video_episode("ep", speaker, title, 3600, "00:59:30")])
     assert kept[0].title == expected
+
+
+@pytest.mark.parametrize("url", ["https://www.youtube.com/watch?v=gokul-rajaram", "https://www.youtube.com/watch?v=aaa",
+                                 "https://example.com/watch?v=dLku0AiGPVA", "not-a-url"])
+def test_link_needs_a_real_youtube_video_id(url: str) -> None:
+    raw = f"---\nguest: Ada Guest\ntitle: Topic | Ada Guest\nyoutube_url: {url}\n---\n\nAda Guest (00:00:05):\nHi.\n"
+    assert parse_episode("ada", raw).url is None
+    assert parse_episode("ada", raw.replace(url, "https://www.youtube.com/watch?v=dLku0AiGPVA")).url is not None
 
 
 def test_shared_video_link_goes_to_the_closest_fit() -> None:
