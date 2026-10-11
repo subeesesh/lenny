@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { Artifact } from "../api";
-import { artifactDocument } from "../render";
+import { artifactDocument, type Theme } from "../render";
 import { BackIcon, CheckIcon, CloseIcon, CopyIcon, LockIcon } from "./icons";
 
-type Props = { artifact: Artifact | null; loadingTitle: string | null; error: string | null; onClose: () => void };
+type Props = { artifact: Artifact | null; loadingTitle: string | null; error: string | null; onClose: () => void; theme: Theme };
 
-export function ArtifactPane({ artifact, loadingTitle, error, onClose }: Props) {
+export function ArtifactPane({ artifact, loadingTitle, error, onClose, theme }: Props) {
   const [view, setView] = useState<"preview" | "source">("preview");
   const [copied, setCopied] = useState(false);
   const title = artifact?.title ?? loadingTitle ?? "Document";
@@ -53,7 +53,7 @@ export function ArtifactPane({ artifact, loadingTitle, error, onClose }: Props) 
           <span className="spinner" aria-hidden="true" /> Loading…
         </p>
       ) : view === "preview" ? (
-        <iframe className="artifact-frame" title={`Preview of ${artifact.title} (sandboxed)`} sandbox="" srcDoc={artifactDocument(artifact)} />
+        <iframe className="artifact-frame" title={`Preview of ${artifact.title} (sandboxed)`} sandbox="" srcDoc={artifactDocument(artifact, theme)} />
       ) : (
         <pre className="artifact-source">{artifact.content}</pre>
       )}

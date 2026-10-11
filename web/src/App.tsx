@@ -8,9 +8,11 @@ import { ProviderBadge } from "./components/ProviderBadge";
 import { AlertIcon, ChatIcon, MenuIcon, PageIcon, PenIcon } from "./components/icons";
 import { Sidebar, displayTitle } from "./components/Sidebar";
 import { pickSuggestions } from "./suggestions";
+import type { Theme } from "./render";
 import { SidebarResizer, readSidebarWidth } from "./components/SidebarResizer";
 
 const NAME_KEY = "lga.displayName";
+const THEME_KEY = "lga.theme";
 
 const TILES = [
   { icon: <ChatIcon size={20} />, title: "Ask a question", text: "A cited answer from ~290 episodes.", prefill: "" },
@@ -34,6 +36,17 @@ const readName = () => {
   } catch {
     return null;
   }
+};
+
+/** The saved choice, else the OS setting. */
+const readTheme = (): Theme => {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "light" || saved === "dark") return saved;
+  } catch {
+    /* storage blocked: follow the OS */
+  }
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
 let keyCounter = 0;
@@ -68,6 +81,7 @@ export default function App() {
   const [suggestions, setSuggestions] = useState(() => pickSuggestions());
   const [pane, setPane] = useState<{ ref: ArtifactRef; artifact: Artifact | null; error: string | null } | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const [theme, setTheme] = useState<Theme>(readTheme);
   const endRef = useRef<HTMLDivElement>(null);
 
   const handleFailure = useCallback((err: unknown) => {
@@ -102,6 +116,20 @@ export default function App() {
   }, [loadSessions, loadConfig]);
 
   useEffect(reconnect, [reconnect]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {
+      /* private mode: the choice lasts until reload */
+    }
+  }
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -275,6 +303,8 @@ export default function App() {
         onSelect={selectSession}
         onDelete={deleteSession}
         onRetry={loadSessions}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <SidebarResizer width={sidebarWidth} onChange={setSidebarWidth} />
       <div className="drawer-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
@@ -334,7 +364,7 @@ export default function App() {
         </div>
         <Composer disabled={busy} prefill={prefill} onSend={send} />
       </main>
-      {pane && <ArtifactPane artifact={pane.artifact} loadingTitle={pane.ref.title} error={pane.error} onClose={() => setPane(null)} />}
+      {pane && <ArtifactPane artifact={pane.artifact} loadingTitle={pane.ref.title} error={pane.error} onClose={() => setPane(null)} theme={theme} />}
       <div className="visually-hidden" aria-live="polite">
         {announcement}
       </div>

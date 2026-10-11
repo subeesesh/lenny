@@ -28,7 +28,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #1a1917;
     --sidebar-bg: #151412;
     --surface: #211f1c;
@@ -47,6 +47,28 @@
     --danger-bg: #2c1716;
     --focus: #e9a23b;
   }
+}
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1a1917;
+  --sidebar-bg: #151412;
+  --surface: #211f1c;
+  --subtle: #262421;
+  --hover: #2e2b27;
+  --border: #2f2c28;
+  --text: #ece8e1;
+  --muted: #a59f94;
+  --faint: #7c766c;
+  --accent: #e9a23b;
+  --accent-hover: #f2b55a;
+  --accent-soft: #33291a;
+  --accent-text: #1a1917;
+  --link: #efb560;
+  --danger: #ff8a80;
+  --danger-bg: #2c1716;
+  --focus: #e9a23b;
 }
 
 * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--hover) transparent; }
@@ -101,7 +123,8 @@ button.quiet { background: transparent; border-color: transparent; }
   display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 7px;
   background: var(--text); color: var(--bg); font-weight: 700; font-size: 0.85rem;
 }
-.brand-name { font-weight: 600; font-size: 0.95rem; letter-spacing: -0.01em; }
+.brand-name { flex: 1; font-weight: 600; font-size: 0.95rem; letter-spacing: -0.01em; }
+.theme-toggle { min-height: 32px; width: 32px; padding: 0; color: var(--muted); }
 .new-chat { justify-content: flex-start; width: 100%; background: var(--surface); }
 .sidebar-label { margin: 18px 10px 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
 .session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }

@@ -1,5 +1,6 @@
 import type { SessionSummary } from "../api";
-import { PlusIcon, TrashIcon } from "./icons";
+import type { Theme } from "../render";
+import { MoonIcon, PlusIcon, SunIcon, TrashIcon } from "./icons";
 
 type Props = {
   sessions: SessionSummary[] | null;
@@ -9,6 +10,8 @@ type Props = {
   onSelect: (id: string) => void;
   onDelete: (session: SessionSummary) => void;
   onRetry: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 };
 
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
@@ -37,7 +40,7 @@ function ago(iso: string): string {
   return "just now";
 }
 
-export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete, onRetry }: Props) {
+export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete, onRetry, theme, onToggleTheme }: Props) {
   return (
     <nav className="sidebar" aria-label="Chats">
       <div className="brand">
@@ -45,6 +48,15 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete
           L
         </span>
         <span className="brand-name">Lenny Growth Assistant</span>
+        <button
+          type="button"
+          className="quiet theme-toggle"
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          title={theme === "dark" ? "Light theme" : "Dark theme"}
+          onClick={onToggleTheme}
+        >
+          {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+        </button>
       </div>
       <button type="button" className="new-chat" onClick={onNew}>
         <PlusIcon /> New chat
