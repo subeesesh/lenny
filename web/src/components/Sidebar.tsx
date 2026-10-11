@@ -59,7 +59,10 @@ export function Sidebar({ sessions, failed, currentId, onNew, onSelect, onDelete
         </button>
       </div>
       <button type="button" className="new-chat" onClick={onNew}>
-        <PlusIcon /> New chat
+        <span className="new-chat-icon" aria-hidden="true">
+          <PlusIcon />
+        </span>
+        New chat
       </button>
       <h2 className="sidebar-label">Chats</h2>
       {failed ? (

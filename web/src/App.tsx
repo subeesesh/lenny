@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { api, ApiError, NetworkError, sendMessage, type Artifact, type ArtifactRef, type Config, type SessionDetail, type SessionSummary } from "./api";
 import { ArtifactPane } from "./components/ArtifactPane";
+import { DeleteDialog } from "./components/DeleteDialog";
 import { Composer, type Prefill } from "./components/Composer";
 import { MessageView, type UiMessage } from "./components/MessageView";
 import { NameDialog } from "./components/NameDialog";
@@ -82,6 +83,7 @@ export default function App() {
   const [pane, setPane] = useState<{ ref: ArtifactRef; artifact: Artifact | null; error: string | null } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const [pendingDelete, setPendingDelete] = useState<SessionSummary | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const handleFailure = useCallback((err: unknown) => {
@@ -185,7 +187,7 @@ export default function App() {
   }
 
   async function deleteSession(s: SessionSummary) {
-    if (!window.confirm(`Delete "${s.title}"? This removes its messages and documents and can't be undone.`)) return;
+    setPendingDelete(null);
     try {
       await api.deleteSession(s.id);
       if (s.id === sessionId) newChat();
@@ -301,7 +303,7 @@ export default function App() {
         currentId={sessionId}
         onNew={newChat}
         onSelect={selectSession}
-        onDelete={deleteSession}
+        onDelete={setPendingDelete}
         onRetry={loadSessions}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -364,6 +366,9 @@ export default function App() {
         </div>
         <Composer disabled={busy} prefill={prefill} onSend={send} />
       </main>
+      {pendingDelete && (
+        <DeleteDialog session={pendingDelete} onConfirm={() => deleteSession(pendingDelete)} onCancel={() => setPendingDelete(null)} />
+      )}
       {pane && <ArtifactPane artifact={pane.artifact} loadingTitle={pane.ref.title} error={pane.error} onClose={() => setPane(null)} theme={theme} />}
       <div className="visually-hidden" aria-live="polite">
         {announcement}

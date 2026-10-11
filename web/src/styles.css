@@ -125,7 +125,17 @@ button.quiet { background: transparent; border-color: transparent; }
 }
 .brand-name { flex: 1; font-weight: 600; font-size: 0.95rem; letter-spacing: -0.01em; }
 .theme-toggle { min-height: 32px; width: 32px; padding: 0; color: var(--muted); }
-.new-chat { justify-content: flex-start; width: 100%; background: var(--surface); }
+.new-chat {
+  justify-content: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px 0 7px;
+  background: var(--surface); font-weight: 600;
+}
+.new-chat:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
+.new-chat-icon {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px;
+  background: var(--accent); color: var(--accent-text); transition: transform 0.12s ease;
+}
+.new-chat:hover .new-chat-icon { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .new-chat-icon { transition: none; } }
 .sidebar-label { margin: 18px 10px 6px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
 .session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .session {
@@ -319,6 +329,22 @@ a.source-link:hover { color: var(--link); border-color: var(--accent); backgroun
 .name-dialog input { min-height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
 .name-dialog input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .name-dialog button { margin-top: 10px; }
+
+/* Delete chat dialog (shares the name dialog's frame) */
+.delete-dialog { display: flex; flex-direction: column; gap: 6px; max-width: 380px; }
+.delete-dialog:not([open]) { display: none; }
+.delete-icon {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; margin-bottom: 6px; border-radius: 10px;
+  background: var(--danger-bg); color: var(--danger);
+}
+.delete-name {
+  margin: 2px 0 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--subtle);
+  font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.delete-dialog .dialog-actions button { margin-top: 0; }
+button.danger { background: var(--danger); border-color: var(--danger); color: var(--surface); }
+button.danger:hover:not(:disabled) { background: var(--danger); border-color: var(--danger); filter: brightness(0.92); }
 
 /* Sidebar resize handle on the sidebar's right edge */
 .sidebar-resizer {
